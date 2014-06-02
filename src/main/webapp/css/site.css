@@ -52,6 +52,7 @@ body > .container {
 .page-header {
     margin-top: 68px;
     margin-bottom: 0px;
+    padding-bottom: 0px;
 }
 h1 {
     font-size: 28px;
@@ -59,6 +60,7 @@ h1 {
     line-height: normal;
     color: #6d6f70;
     font-family: "AvenirNextLTW01-Regular",sans-serif;
+    padding-bottom: 10px;
 }
 
 /* Form layout */
