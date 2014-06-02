@@ -12,8 +12,10 @@
     <meta name="description" content=""/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-    <link rel="stylesheet" href="css/bootstrap-v3.1.1/bootstrap.css"/>
-    <link rel="stylesheet" href="css/bootstrap-v3.1.1/bootstrap-theme.css"/>
+    <link rel="stylesheet" href="css/bootstrap-v3.1.1/bootstrap.css"
+          th:href="@{'css/bootstrap-v3.1.1/bootstrap' + (${cspUseMinifiedJs} ? '.min' : '') + '.css'}"/>
+    <link rel="stylesheet" href="css/bootstrap-v3.1.1/bootstrap-theme.css"
+          th:href="@{'css/bootstrap-v3.1.1/bootstrap-theme' + (${cspUseMinifiedJs} ? '.min' : '') + '.css'}"/>
     <link rel="stylesheet" href="css/site.css"/>
     <link rel="stylesheet" href="https://s3.amazonaws.com/rnfonts/demo.css" type="text/css"/>
 
@@ -52,9 +54,12 @@
     </div>
 </div>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-<script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.12.0/jquery.validate.min.js"></script>
-<script src="js/libs/bootstrap-3.1.1.js"></script>
+<script th:src="@{'https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery' + (${cspUseMinifiedJs} ? '.min' : '') + '.js'}"
+        src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script th:src="@{'http://ajax.aspnetcdn.com/ajax/jquery.validate/1.12.0/jquery.validate' + (${cspUseMinifiedJs} ? '.min' : '') + '.js'}"
+        src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.12.0/jquery.validate.min.js"></script>
+<script th:src="@{'js/libs/bootstrap-3.1.1' + (${cspUseMinifiedJs} ? '.min' : '') + '.js'}"
+        src="js/libs/bootstrap-3.1.1.js"></script>
 <script src="js/libs/modernizr-2.0.6.min.js"></script>
 <script src="js/libs/misc.js"></script>
 

@@ -11,7 +11,8 @@
             availabilityApi: "./api/cloud_names/",  // URL of cloud name restful API
             stripSymbol: false,
             completed: null,                        // Callback after name has been checked takes element and boolean. Must be set.
-            changed: null                           // Callback after name has been changed takes element
+            changed: null,                          // Callback after name has been changed takes element
+            debug: false                            // Whether to show console logging
         }, opts);
 
         var $elem = $(this),
@@ -57,7 +58,9 @@
         $elem.on('change keydown keyup paste input blur', function (event) {
 
             var newCloudName = $elem.val().toLowerCase().trim();
-            console.log('event.type=' + event.type + ', newCloudName=' + newCloudName + ', cloudName=' + cloudName);
+            if (options.debug) {
+                console.log('event.type=' + event.type + ', newCloudName=' + newCloudName + ', cloudName=' + cloudName);
+            }
 
             // deleted/cleared - don't add prefix, just show normal hint text
             if (newCloudName.length == 0) {
@@ -102,15 +105,17 @@
 
         function callOnChange() {
             if (typeof options.changed === "function") {
-                options.changed.call(this, $elem);
+                options.changed.call(options, $elem);
             }
         }
 
         function callOnComplete(result) {
             if (typeof options.completed === "function") {
-                options.completed.call(this, $elem, result);
+                options.completed.call(options, $elem, result);
             } else {
-                console.log('completed function undefined');
+                if (options.debug) {
+                    console.log('completed function undefined');
+                }
             }
         }
 

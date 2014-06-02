@@ -36,8 +36,8 @@
 
 <th:block layout:fragment="postFooterContent">
     <script src="js/libs/nameavailability.js"></script>
-    <script>
-
+    <script th:inline="javascript">
+        /*<![CDATA[*/
         $(document).ready(function () {
 
             var cloudNameGroup = $('#cloudNameGroup');
@@ -67,7 +67,9 @@
                     cloudNameHelpIcon.removeClass('glyphicon-ok glyphicon-remove glyphicon-warning-sign');
 
                     // success var will contain a 1 if the name is available and 0 if it not available.
-                    console.log('Checking cloud... :: success=' + success);
+                    if (this.debug) {
+                        console.log('Checking cloud... :: success=' + success);
+                    }
 
                     // clear error
                     if (cloudNameInput.val().trim() == '') {
@@ -97,14 +99,19 @@
                 changed: function (elem) {
                     isAvailable = false;
                     cloudNameInput.addClass('btn-primary-loading');
-                    console.log('Changing cloud...');
+                    if (this.debug) {
+                        console.log('Changing cloud...');
+                    }
                 },
 
                 // indicates if the leading symbol should be removed prior to adding the name to the path
                 stripSymbol: true,
 
                 // indicates the location of the availability service
-                availabilityApi: /*[[${signUpInfo.nameAvailabilityCheckURL + '/api/availability/equals/'}]]*/ "https://checkavailability-prod.respectnetwork.net/api/availability/equals/"
+                availabilityApi: /*[[${signUpInfo.nameAvailabilityCheckURL + '/api/availability/equals/'}]]*/ "https://checkavailability-prod.respectnetwork.net/api/availability/equals/",
+
+                // console output
+                debug: /*[[${cspDbgNameAvailability}]]*/ false
             });
 
             $.validator.addMethod("isAvailable", function (value, element, param) {
@@ -124,7 +131,7 @@
                 }
             });
         });
-
+        /*]]>*/
     </script>
 </th:block>
 
