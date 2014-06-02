@@ -86,10 +86,10 @@ function addFormValidation(formSelector, validation) {
         },
         highlight: function (element, errorClass, validClass) {
             $(element.form).find('label[for=' + element.id + ']').removeClass('glyphicon glyphicon-ok');
-            this.getElements(element).closest('[class~="form-group"]').addClass('has-error').removeClass('has-success has-feedback');
+            this.settings.getElements(element).closest('[class~="form-group"]').addClass('has-error').removeClass('has-success has-feedback');
         },
         unhighlight: function (element, errorClass, validClass) {
-            this.getElements(element).closest('[class~="form-group"]').removeClass('has-error').addClass('has-success');
+            this.settings.getElements(element).closest('[class~="form-group"]').removeClass('has-error').addClass('has-success');
         }
     }, validation));
 }
