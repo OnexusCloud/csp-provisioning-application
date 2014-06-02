@@ -17,7 +17,7 @@
 
     <form action="#" th:action="@{/signup}" method="post"
           class="form-primary" role="form" th:object="${signUpInfo}"
-          autocomplete="off" accept-charset="UTF-8" id="signup">
+          autocomplete="off" accept-charset="UTF-8" id="signupForm">
 
         <div class="form-group" id="cloudNameGroup">
             <input type="text" id="cloudName" name="cloudName" class="form-control" placeholder="=you..."
@@ -108,7 +108,7 @@
                 stripSymbol: true,
 
                 // indicates the location of the availability service
-                availabilityApi: /*[[${signUpInfo.nameAvailabilityCheckURL + '/api/availability/equals/'}]]*/ "https://checkavailability-prod.respectnetwork.net/api/availability/equals/",
+                availabilityApi: /*[[${cspNameAvailabilityCheckUrl}]]*/ "https://checkavailability-prod.respectnetwork.net/api/availability/equals/",
 
                 // console output
                 debug: /*[[${cspDbgNameAvailability}]]*/ false

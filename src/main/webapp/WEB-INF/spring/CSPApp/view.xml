@@ -36,6 +36,7 @@
         <beans:property name="staticVariables">
             <beans:map>
                 <beans:entry key="cspUseMinifiedJs" value="${csp.useMinifiedJs:true}" />
+                <beans:entry key="cspNameAvailabilityCheckUrl" value="${csp.nameAvailabilityCheckUrl:https://checkavailability-prod.respectnetwork.net/api/availability/equals/}" />
                 <beans:entry key="cspDbgNameAvailability" value="${csp.dbgNameAvailability:false}" />
             </beans:map>
         </beans:property>
