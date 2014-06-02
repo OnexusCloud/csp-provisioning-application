@@ -134,6 +134,10 @@ label.form-control-feedback.glyphicon {
     top: 8px;
 }
 
+.has-success .input-group-addon {
+    background-color: inherit;
+}
+
 /* Form button */
 
 .btn {

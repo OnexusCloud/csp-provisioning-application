@@ -21,18 +21,19 @@
 
             <!--/* Don't show payment form if buying gift card and no credit card processor enabled */-->
             <form action="#" th:action="@{/makePayment}" method="post"
-                  class="form-secondary"
+                  class="form-secondary" id="paymentForm"
                   th:unless="*{txnType == 'buyGiftCard' and giftCodesOnly}">
 
+                <div class="form-control-feedback has-error" id="paymentTypeError"></div>
+
                 <!--/* Gift cards */-->
-                <div class="form-group">
+                <div class="form-group" data-show-valid-glyph="false">
                     <div class="input-group">
                         <span class="input-group-addon">
                             <input type="radio" name="paymentType" id="giftCodeRadio"
                                    value="giftCard" th:checked="*{giftCodesOnly}"/>
                         </span>
-                        <input type="text" id="giftCodes" name="giftCodes"
-                               placeholder="gift code"
+                        <input type="text" id="giftCodes" name="giftCodes" placeholder="gift code"
                                class="form-control" th:value="*{giftCodes}"/>
                     </div>
                     <p class="help-block" id="giftCodeHelp">Separate multiple gift codes by spaces</p>
@@ -53,12 +54,11 @@
 
                 <!--/* I agree checkbox */-->
                 <div class="form-group">
-                    <div class="input-group">
-                    <span class="input-group-addon">
-                       <input type="checkbox" name="cspTandC" id="agreeCheckbox"
-                              th:checked="*{cspTandC}"/>
+                    <label class="input-group">
+                        <span class="input-group-addon">
+                            <input type="checkbox" name="cspTandC" id="cspTandC" th:checked="*{cspTandC}"/>
                         </span>
-                        <label class="secondary" for="agreeCheckbox">
+                        <label class="secondary">
                             I agree to the
                             <a target="_blank" onclick="return windowpop(this.href, 545, 433);"
                                href="http://openidentityexchange.org/trust-frameworks/respect-trust-framework">
@@ -66,10 +66,10 @@
                             </a>
                             and the one-person one-account rule.
                         </label>
-                    </div>
+                    </label>
                 </div>
 
-                <button type="submit" name="submit" id="submit" class="button btn btn-lg btn-primary">Continue</button>
+                <button type="submit" name="submitBtn" id="submitBtn" class="button btn btn-lg btn-primary">Continue</button>
 
                 <input type="hidden" name="numberOfClouds" value="" id="numberOfClouds" th:value="*{numberOfClouds}"/>
                 <input type="hidden" name="txnType" value="" id="txnType" th:value="*{txnType}"/>
@@ -107,6 +107,66 @@
 
     </div>
 </div>
+
+<th:block layout:fragment="postFooterContent">
+    <script src="js/libs/intlTelInput.min.js"></script>
+    <script src="js/libs/data.js"></script>
+    <script>
+        /*<![CDATA[*/
+        $('#cc').intlTelInput();
+
+        $(document).ready(function () {
+
+            // select gift codes payment type if we start entering gift codes
+            var giftCodesRadio = $('#giftCodeRadio');
+            $('#giftCodes').on('change keydown keyup paste input click', function (event) {
+                giftCodesRadio.prop('checked', true);
+            });
+
+            addFormValidation('#paymentForm', {
+                rules: {
+                    giftCodeRadio: {
+                        required: true
+                    },
+                    creditCardRadio: {
+                        required: true
+                    },
+                    paymentType: {
+                        required: true
+                    },
+                    giftCodes: {
+                        required: {
+                            depends: function (element) {
+                                return ($('#giftCodeRadio:checked').length > 0);
+                            }
+                        }
+                    },
+                    cspTandC: {
+                        required: true
+                    }
+                },
+                messages: {
+                    paymentType: {
+                        required: 'Please select a payment method'
+                    },
+                    giftCodes: {
+                        required: 'Please enter one or more gift codes'
+                    },
+                    cspTandC: {
+                        required: 'Please agree to the terms and conditions'
+                    }
+                },
+                ext: {
+                    paymentType: {
+                        errorContainer: $('#paymentTypeError'),
+                        showValidGlyph: false
+                    }
+                }
+            });
+        });
+        /*]]>*/
+    </script>
+</th:block>
 
 </body>
 </html>
