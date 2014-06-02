@@ -54,7 +54,7 @@ function addFormValidation(formSelector, validation) {
             errorPlacement: function (label, element) {
                 var formGroup = element.closest('[class^="form-group"]');
                 var secondary = formGroup.find('[class^="secondary"]'); // if wrapped in secondary (e.g. check boxes)
-                var inputGroup = element.closest('[class^="input-group"]'); // if horizontal controls
+                var inputGroup = formGroup.find('[class^="input-group"]'); // if horizontal controls
                 var insertAfterElement = element;
                 if (secondary.length > 0) {
                     insertAfterElement = secondary;
@@ -73,7 +73,7 @@ function addFormValidation(formSelector, validation) {
             },
             highlight: function (element, errorClass, validClass) {
                 $(element).closest('[class^="form-group"]').addClass('has-error').removeClass('has-success has-feedback');
-                $(element.form).find("label[for=" + element.id + "]").removeClass('glyphicon glyphicon-ok');
+                $(element.form).find('label[for=' + element.id + ']').removeClass('glyphicon glyphicon-ok');
             },
             unhighlight: function (element, errorClass, validClass) {
                 $(element).closest('[class^="form-group"]').removeClass('has-error').addClass('has-success');
