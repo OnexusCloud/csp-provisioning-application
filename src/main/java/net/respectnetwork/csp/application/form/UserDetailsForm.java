@@ -48,6 +48,9 @@ public class UserDetailsForm {
      * @param mobilePhone the mobilePhone to set
      */
     public void setMobilePhone(String mobilePhone) {
+        if (mobilePhone != null) {
+            mobilePhone = mobilePhone.replace(" ", ""); // remove any formatting spaces
+        }
         this.mobilePhone = mobilePhone;
     }
     
