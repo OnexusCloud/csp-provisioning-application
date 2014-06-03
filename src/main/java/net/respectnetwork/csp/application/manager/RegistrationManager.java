@@ -1,14 +1,18 @@
 package net.respectnetwork.csp.application.manager;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Currency;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.respectnetwork.csp.application.exception.CSPException;
 import net.respectnetwork.csp.application.exception.UserRegistrationException;
 import net.respectnetwork.csp.application.model.AvailabilityResponse;
+import net.respectnetwork.csp.application.util.EmailHelper;
 import net.respectnetwork.sdk.csp.BasicCSPInformation;
 import net.respectnetwork.sdk.csp.CSP;
 import net.respectnetwork.sdk.csp.UserValidator;
@@ -22,6 +26,7 @@ import net.respectnetwork.sdk.csp.validation.CSPValidationException;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -125,6 +130,12 @@ public class RegistrationManager {
     private String cspTCURL;
     
     private String nameAvailabilityCheckURL;
+    
+    private String cspHomePage;
+    
+    private String contactSupportEmail;
+    
+    private String cspCloudName;
     
     public static final String GeoLocationPostURIKey = "<$https><#network.globe><$set>";
     public static final String RNpostRegistrationLandingPageURIKey = "<$https><#post><#registration>";
@@ -423,8 +434,7 @@ public class RegistrationManager {
         
     }
     
-    public CloudNumber registerUser(CloudName cloudName, String verifiedPhone, String verifiedEmail, String userPassword , NeustarRNDiscountCode cdc, String paymentType, String paymentRefId) throws CSPRegistrationException, Xdi2ClientException {
-        
+    public CloudNumber registerUser(final CloudName cloudName, String verifiedPhone, final String verifiedEmail, String userPassword , NeustarRNDiscountCode cdc, String paymentType, String paymentRefId, final Locale locale) throws CSPRegistrationException, Xdi2ClientException {
         
         CloudNumber cloudNumber = CloudNumber.createRandom(cloudName.getCs());
         if(cloudNumber != null)
@@ -440,6 +450,12 @@ public class RegistrationManager {
            rut.setCdc(cdc);
            rut.setPaymentType(paymentType);
            rut.setPaymentRefId(paymentRefId);
+           rut.setLocale(locale);
+           rut.setCspCloudName(this.cspCloudName);
+           rut.setCspHomePage(this.cspHomePage);
+           rut.setCspContactSupportEmail(this.contactSupportEmail);
+           rut.setUserEmail(verifiedEmail);
+           rut.setCspContactEmail(cspContactEmail);
            Thread t = new Thread(rut);
            t.start();
            
@@ -525,7 +541,7 @@ public class RegistrationManager {
 		this.requireInviteCode = requireInviteCode;
 	}
 	
-	public CloudNumber registerDependent(CloudName guardianCloudName , String guardianToken , CloudName dependentCloudName,  String dependentToken , String s_dependentBirthDate, String paymentType, String paymentRefId){
+	public CloudNumber registerDependent(CloudName guardianCloudName , String guardianToken , CloudName dependentCloudName,  String dependentToken , String s_dependentBirthDate, String paymentType, String paymentRefId, String guardianEmailAddress, String guardianPhone, Locale locale){
 				  CloudNumber depCloudNumber = CloudNumber.createRandom(dependentCloudName.getCs());
 				  
 				  RegisterDependentCloudThread rdct = new RegisterDependentCloudThread();
@@ -539,6 +555,13 @@ public class RegistrationManager {
 				  rdct.setS_dependentBirthDate(s_dependentBirthDate);
 				  rdct.setPaymentType(paymentType);
 				  rdct.setPaymentRefId(paymentRefId);
+				  rdct.setGuardianEmail(guardianEmailAddress);
+				  rdct.setGuardianPhone(guardianPhone);
+				  rdct.setCspCloudName(this.cspCloudName);
+				  rdct.setCspHomePage(this.cspHomePage);
+				  rdct.setCspContactSupportEmail(this.contactSupportEmail);
+				  rdct.setLocale(locale);
+				  rdct.setCspContactEmail(cspContactEmail);
 				  Thread t = new Thread(rdct);
 				  t.start();
 					
@@ -634,7 +657,7 @@ public class RegistrationManager {
 				*/
 		return depCloudNumber;
 	}
-	
+
 	/**
      * @param phone to set
      */
@@ -770,6 +793,24 @@ public class RegistrationManager {
    public void setCspTCURL(String cspTCURL)
    {
       this.cspTCURL = cspTCURL;
+   }
+
+   @Autowired
+   @Qualifier("contactSupportEmail")
+   public void setCspContactSupportEmail(String contactSupportEmail) {
+       this.contactSupportEmail = contactSupportEmail;
+   }
+
+   @Autowired
+   @Qualifier("cspCloudName")
+   public void setCspCloudName(String cspCloudName) {
+       this.cspCloudName = cspCloudName;
+   }
+
+   @Autowired
+   @Qualifier("cspHomePage")
+   public void setCspHomePage(String cspHomePage) {
+       this.cspHomePage = cspHomePage;
    }
 
    public static boolean validateCloudName(String iname) {
@@ -975,7 +1016,7 @@ public class RegistrationManager {
    {
       this.nameAvailabilityCheckURL = nameAvailabilityCheckURL;
    }
-// TODO:
+   // TODO:
     // 1. We should write Rest client to make a call to AvailabilityAPI.
     // That way we can reuse it whereever it is required in application.
     // 2. Url to AvailabilityAPI needs to modify to cater both Plus and Equal
@@ -987,7 +1028,7 @@ public class RegistrationManager {
      * @throws Exception
      */
     public boolean isCloudNameAvailableInRegistry(String cloudName)
-            throws Exception {
+             throws CSPException {
         logger.info("Going to get cloud name availability from registry "
                 + nameAvailabilityCheckURL);
 
@@ -1019,11 +1060,21 @@ public class RegistrationManager {
                 logger.info("Is cloud name {} available: " + available,
                         cloudName);
             }
+        } catch (ClientProtocolException e) {
+            logger.error("Error while checking cloud name.", e);
+            throw new CSPException("System error while checking cloud name.");
+        } catch (IOException e) {
+            logger.error("Error while checking cloud name.", e);
+            throw new CSPException("System error while checking cloud name.");
         } finally {
+            try {
             if (response != null) {
                 response.close();
             }
             httpclient.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         return available;
     }
