@@ -12,73 +12,85 @@
 <div class="container" layout:fragment="bodyContent">
 
     <div class="page-header">
-        <h1>Verification codes have been sent to your email and phone<br/>
-        <small>Enter those codes in the fields below<br/>
-        Codes are not case sensitive</small></h1>
+        <h1 th:utext="#{validateCodes.title}">Verification codes have been sent to your email and phone<br/>
+            <small>Enter those codes in the fields below<br/>
+                Codes are not case sensitive
+            </small>
+        </h1>
     </div>
 
-    <div class="middle2"><span style="color:red" class="error" th:text="${error}"></span><br/>
+    <form action="#" th:action="@{/validatecodes}" method="post"
+          class="form-primary" th:object="${validateInfo}" id="validateCodesForm">
 
+        <!--/* Errors */-->
+        <div class="form-group" data-show-valid-glyph="false">
+            <div id="error" name="error"></div>
+        </div>
 
-        <form action="#" th:action="@{/validatecodes}" method="post"
-              class="form-primary" th:object="${validateInfo}" id="validateCodesForm">
+        <!--/* Email code */-->
+        <div class="form-group" data-show-valid-glyph="false">
+            <input type="text" id="emailCode" name="emailCode" class="form-control"
+                   placeholder="email code" th:placeholder="#{validateCodes.emailCode.placeholder}"
+                   required="required" autofocus="autofocus"/>
 
-            <!--/* Email code */-->
-            <div class="form-group" data-show-valid-glyph="false">
-                <input type="text" id="emailCode" name="emailCode"
-                       class="form-control" placeholder="email code"
-                       required="required" autofocus="autofocus"/>
-                <p class="help-block" th:text="|Sent to ${verifyingEmail}|">
-                    Sent to abc@example.com
-                </p>
-            </div>
+            <p class="help-block" th:utext="#{validateCodes.emailCode.help(${verifyingEmail})}">
+                Sent to abc@example.com
+            </p>
+        </div>
 
-            <!--/* Text code */-->
-            <div class="form-group" data-show-valid-glyph="false">
-                <input type="text" id="smsCode" name="smsCode"
-                       class="form-control" placeholder="text code"
-                       required="required"/>
-                <p class="help-block" th:text="|Sent to ${verifyingPhone}|">
-                    Sent to +123546789
-                </p>
-            </div>
+        <!--/* Text code */-->
+        <div class="form-group" data-show-valid-glyph="false">
+            <input type="text" id="smsCode" name="smsCode" class="form-control"
+                   placeholder="text code"  th:placeholder="#{validateCodes.smsCode.placeholder}"
+                   required="required"/>
 
-            <!--/* I agree checkbox */-->
-            <div class="form-group">
-                <label class="secondary">
-                    <input type="checkbox" id="terms" name="terms" />
-                    I agree to the
-                    <a target="_blank" onclick="return windowpop(this.href, 545, 433);"
-                       href="http://openidentityexchange.org/trust-frameworks/respect-trust-framework">
-                        Respect Trust Framework
-                    </a>
-                    and the one-person one-account rule.
-                </label>
-            </div>
+            <p class="help-block" th:utext="#{validateCodes.smsCode.help(${verifyingPhone})}">
+                Sent to +123546789
+            </p>
+        </div>
 
-            <!--/* Buttons */-->
-            <div class="form-group">
-                <button type="submit" name="submit" id="submit"
-                    class="btn btn-lg btn-primary">Verify</button>
-            </div>
+        <!--/* I agree checkbox */-->
+        <div class="form-group">
+            <label class="secondary">
+                <input type="checkbox" id="terms" name="terms"/>
+                <th:block th:utext="#{validateCodes.terms(${cspTermsUrl})}">
+                I agree to the
+                <a target="_blank" onclick="return windowpop(this.href, 545, 433);"
+                   href="http://openidentityexchange.org/trust-frameworks/respect-trust-framework">
+                    Respect Trust Framework
+                </a>
+                and the one-person one-account rule.
+                </th:block>
+            </label>
+        </div>
 
-            <div class="form-group">
-                <button type="submit" name="resendCodes" id="resendCodes"
-                        class="btn btn-lg btn-info">Send new codes</button>
-            </div>
+        <!--/* Buttons */-->
+        <div class="form-group">
+            <button type="submit" id="submitBtn" name="submitBtn" class="btn btn-lg btn-primary"
+                    th:utext="#{validateCodes.btn.verify}">Verify</button>
+        </div>
 
+        <div class="form-group">
+            <button type="submit" id="resendCodes" name="resendCodes" class="btn btn-lg btn-info"
+                    th:utext="#{validateCodes.btn.sendNewCodes}">Send new codes</button>
+        </div>
 
-            <input type="hidden" name="verifyingEmail" th:value="${verifyingEmail}" id="verifyingEmail"/>
-            <input type="hidden" name="verifyingPhone" th:value="${verifyingPhone}" id="verifyingPhone"/>
-            <input type="hidden" name="resetPwd" th:value="${resetPwd}" id="resetPwd"/>
-        </form>
-    </div>
+        <!--/* Vars */-->
+        <input type="hidden" id="resetPwd" name="resetPwd" value="false" th:value="*{resetPwd}"/>
+    </form>
 </div>
 
 <th:block layout:fragment="postFooterContent">
-    <script>
+    <script th:inline="javascript">
         /*<![CDATA[*/
         $(document).ready(function () {
+
+            var msg = {
+                emailCodeRequired: /*[[#{validateCodes.msg.emailCode.required}]]*/ 'Please enter the email code',
+                smsCodeRequired: /*[[#{validateCodes.msg.smsCode.required}]]*/ 'Please enter the sms code',
+                termsRequired: /*[[#{validateCodes.msg.terms.required}]]*/ 'Please agree to the terms and conditions'
+            };
+
             addFormValidation('#validateCodesForm', {
                 rules: {
                     emailCode: {
@@ -93,16 +105,17 @@
                 },
                 messages: {
                     emailCode: {
-                        required: 'Please enter the email code'
+                        required: msg.emailCodeRequired
                     },
                     smsCode: {
-                        required: 'Please enter the sms code'
+                        required: msg.smsCodeRequired
                     },
                     terms: {
-                        required: 'Please agree to the terms and conditions'
+                        required: msg.termsRequired
                     }
                 }
-            });
+            }, /*[[${errors}]]*/ null
+            );
         });
         /*]]>*/
     </script>

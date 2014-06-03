@@ -44,6 +44,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.UUID;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -237,22 +238,18 @@ public class RegistrationController
         ModelAndView mv;
         if (errors.isEmpty()) {
             mv = new ModelAndView("userDetails");
+            mv.addObject("userInfo", new UserDetailsForm());
 
-            UserDetailsForm userDetailsForm = new UserDetailsForm();
-            userDetailsForm.setCloudName(cloudName);
-            mv.addObject("userInfo", userDetailsForm);
-
-            String sessionId = UUID.randomUUID().toString();
-            regSession.setSessionId(sessionId);
+            regSession.setSessionId(UUID.randomUUID().toString());
             regSession.setCloudName(cloudName);
             regSession.setGiftCode(giftCode);
         } else {
             mv = new ModelAndView("signUp");
             mv.addObject("signUpInfo", signUpForm);
-            mv.addObject("errors", errors.toJson());
         }
 
-        return mv;
+        mv.addObject("cloudName", cloudName);
+        return errors.withModelView(mv);
     }
 
     @ResponseBody
@@ -303,8 +300,8 @@ public class RegistrationController
 
             ModelAndView mv = new ModelAndView("userDetails");
             mv.addObject("userInfo", userDetailsForm);
-            mv.addObject("errors", errors.toJson());
-            return mv;
+            mv.addObject("cloudName", cloudName);
+            return  errors.withModelView(mv);
         }
 
         // Validate email
@@ -366,11 +363,10 @@ public class RegistrationController
         if (errors.isEmpty()) {
             mv = new ModelAndView("validate");
             mv.addObject("validateInfo", new ValidateForm());
-            mv.addObject("cloudName", cloudName);
             mv.addObject("verifyingEmail", email);
             mv.addObject("verifyingPhone", phone);
 
-            // Add CloudName/ Email / Password and Phone to Session
+            // Set email, phone, and password to session
             logger.debug("Setting verified email {}", email);
             regSession.setVerifiedEmail(email);
             regSession.setVerifiedMobilePhone(phone);
@@ -378,197 +374,164 @@ public class RegistrationController
         } else {
             mv = new ModelAndView("userDetails");
             mv.addObject("userInfo", userDetailsForm);
-            mv.addObject("errors", errors.toJson());
         }
 
-        return mv;
+        mv.addObject("cloudName", cloudName);
+        return  errors.withModelView(mv);
     }
 
-   /**
-    * Validate Confirmation Codes,
-    * 
-    * 
-    * @param userForm
-    *           Form with User's details
-    * @param result
-    *           Binding Result for Validation or errors
-    * @return ModelandView of next travel location
-    */
-   @RequestMapping(value = "/validatecodes", method = RequestMethod.POST)
-   public ModelAndView validateCodes(
-         @Valid @ModelAttribute("validateInfo") ValidateForm validateForm,
-         HttpServletRequest request, BindingResult result)
-   {
+    /**
+     * Validate Confirmation Codes
+     */
+    @RequestMapping(value = "/validatecodes", method = RequestMethod.POST)
+    public ModelAndView validateCodes(@Valid @ModelAttribute("validateInfo") ValidateForm validateForm,
+                                      HttpServletRequest request,
+                                      HttpServletResponse response,
+                                      BindingResult result) {
+        logger.debug("Starting Validation Process");
+        logger.debug("Processing Validation Data: {}", validateForm.toString());
 
-      logger.debug("Starting Validation Process");
-      logger.debug("Processing Validation Data: {}", validateForm.toString());
+        FormErrorsHelper errors = new FormErrorsHelper(messageSource, request);
 
-      boolean errors = false;
-      String errorStr = "";
-      ModelAndView mv = new ModelAndView("validate");
-      String sessionIdentifier = regSession.getSessionId();
-      String verifyingEmail = request.getParameter("verifyingEmail");
-      String verifyingPhone = request.getParameter("verifyingPhone");
-	  // To check if request comes from reset password 
-      boolean resetPwd = Boolean.parseBoolean(request.getParameter("resetPwd"));
-      mv.addObject("validateInfo", validateForm);
-      mv.addObject("cloudName", regSession.getCloudName());
-      mv.addObject("verifyingEmail", verifyingEmail);
-      mv.addObject("verifyingPhone", verifyingPhone);
-      mv.addObject("resetPwd", resetPwd);
-      if(request.getParameter("resendCodes") != null)
-      {
-         try
-         {
-            theManager.sendValidationCodes(sessionIdentifier,
-                  verifyingEmail, verifyingPhone);
-            
-            
-            return mv;
-         } catch (CSPValidationException e)
-         {
-            errorStr = "System Error sending validation messages. Please check email and phone number.";
-            logger.warn(errorStr + " : {}", e.getMessage());
-            mv.addObject("error", errorStr);
-            errors = true;
-            return mv;
-         }
-      }
-      logger.debug("RN Terms checkbox ..." + request.getParameter("terms"));
-      if(request.getParameter("terms") == null || !request.getParameter("terms").equalsIgnoreCase("on"))
-      {
-         errorStr = "Please agree to the Respect Trust Framework to continue";
-         logger.debug("Respect Trust Framework not checked ...."
-                 + request.getParameter("terms"));
-         mv.addObject("error", errorStr);
-         errors = true;
-         return mv;
-         
-      }
-      
+        ModelAndView mv = new ModelAndView("validate");
+        mv.addObject("validateInfo", validateForm);
+        mv.addObject("verifyingEmail", regSession.getVerifiedEmail());
+        mv.addObject("verifyingPhone", regSession.getVerifiedMobilePhone());
+        mv.addObject("cloudName", regSession.getCloudName());
 
-      // Validate Codes
-      if (!theManager.validateCodes(sessionIdentifier,
-            validateForm.getEmailCode().trim().toUpperCase(), validateForm.getSmsCode().trim().toUpperCase()))
-      {
-         errorStr = "Email and/or phone code validation failed. Please enter the codes correctly.";
-         logger.debug(errorStr);
-         mv.addObject("error", errorStr);
-         
+        // Validate session
+        String sessionId = regSession.getSessionId();
+        String cloudName = regSession.getCloudName();
+        if (isNullOrEmpty(sessionId) || isNullOrEmpty(cloudName)) {
+            logger.debug("Invalid sessionId or cloudName :: sessionId={}, cloudName={}", sessionId, cloudName);
+            errors.add("error", "form.invalidSession");
 
-         errors = true;
-      }
+            return errors.withModelView(mv);
+        }
 
-      CSPModel cspModel = null;
+        // Resending codes
+        if (request.getParameter("resendCodes") != null) {
+            try {
+                theManager.sendValidationCodes(sessionId, regSession.getVerifiedEmail(), regSession.getVerifiedMobilePhone());
+            } catch (CSPValidationException e) {
+                logger.warn("Failed to send validation codes", e);
+                errors.add("error", "userDetails.msg.sendCodesError");
+            }
 
-      if (!errors)
-      {
+            return errors.withModelView(mv);
+        }
 
-         try
-         {
-            cspModel = DAOFactory.getInstance().getCSPDAO()
-                  .get(this.getCspCloudName());
-         } catch (DAOException e)
-         {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            errors = true;
-         }
+        // Validate Codes
+        Locale locale = request.getLocale();
+        String emailCode = validateForm.getEmailCode();
+        String smsCode = validateForm.getSmsCode();
+        emailCode = (emailCode != null) ? emailCode.trim().toUpperCase(locale) : null;
+        smsCode = (smsCode != null) ? smsCode.trim().toUpperCase(locale) : null;
+        if (!theManager.validateCodes(sessionId, emailCode, smsCode)) {
+            logger.debug("Code validation failed :: emailCode={}, smsCode={}", emailCode, smsCode);
+            errors.add("error", "validateCodes.msg.validationFailed");
+        }
 
-      }
+        // Validate terms
+        if(!validateForm.isTermsChecked()) {
+            logger.debug("Respect Trust Framework not checked");
+            errors.add("terms", "validateCodes.msg.terms.required");
+        }
 
-      if (!errors) {
-         if (!resetPwd) {
-			 mv = new ModelAndView("payment");
-			 mv.addObject("cspTCURL", this.getTheManager().getCspTCURL());
-			 PaymentForm paymentForm = new PaymentForm();
-			 paymentForm.setTxnType(PaymentForm.TXN_TYPE_SIGNUP);
-			 if(regSession != null)
-			 {
-				regSession.setTransactionType(PaymentForm.TXN_TYPE_SIGNUP);
-			 }
-			 paymentForm.setNumberOfClouds(1);
-			 if(regSession.getGiftCode() != null && !regSession.getGiftCode().isEmpty())
-			 {
-				logger.debug("Setting giftcode from session " + regSession.getGiftCode());
-				paymentForm.setGiftCodes(regSession.getGiftCode());
-			 }
-			 if(cspModel.getPaymentGatewayName().equals("GIFT_CODE_ONLY"))
-			 {
-				paymentForm.setGiftCodesOnly(true);
-			 }
-			 mv.addObject("paymentInfo", paymentForm);
+        // Response
+        if (errors.isEmpty()) {
+            if (validateForm.isResetPwd()) {
+                mv = new ModelAndView("resetPassword");
+            } else {
+                CSPModel cspModel = null;
+                String cspCloudName = getCspCloudName();
+                try {
+                    cspModel = DAOFactory.getInstance().getCSPDAO().get(cspCloudName);
+                    if (cspModel == null) {
+                        errors.add("error", "form.databaseError");
+                    }
+                } catch (Exception e) {
+                    logger.error("Failed to get cspModel :: cspCloudName={}", cspCloudName);
+                    errors.add("error", "form.databaseError");
+                }
 
-			 // Check for cost override based on phone number
-			 CurrencyCost totalCost = getCostIncludingOverride(cspModel,
-					 regSession.getVerifiedMobilePhone(),
-					 paymentForm.getNumberOfClouds());
+                if (errors.isEmpty() && cspModel != null) {
+                    PaymentForm paymentForm = new PaymentForm();
+                    paymentForm.setNumberOfClouds(1);
+                    paymentForm.setTxnType(PaymentForm.TXN_TYPE_SIGNUP);
 
-			 regSession.setCurrency(totalCost.getCurrencyCode());
-			 regSession.setCostPerCloudName(totalCost.getAmount());
+                    // Gift codes
+                    String giftCode = regSession.getGiftCode();
+                    if (!isNullOrEmpty(giftCode)) {
+                        logger.debug("Setting gift code from session :: giftCode={}", giftCode);
+                        paymentForm.setGiftCodes(regSession.getGiftCode());
+                    }
+                    if ("GIFT_CODE_ONLY".equals(cspModel.getPaymentGatewayName())) {
+                        paymentForm.setGiftCodesOnly(true);
+                    }
 
-			 mv.addObject("totalAmountText", formatCurrencyAmount(totalCost));
-			 mv.addObject("paymentInfo", paymentForm);
-		 } else {
-		     mv = new ModelAndView("resetPassword");
-             mv.addObject("cloudName", regSession.getCloudName());
-		 }
-      }
+                    // Cost override
+                    CurrencyCost totalCost = getCostIncludingOverride(cspModel, regSession.getVerifiedMobilePhone(), paymentForm.getNumberOfClouds());
 
-      return mv;
-   }
+                    // Update session
+                    regSession.setCurrency(totalCost.getCurrencyCode());
+                    regSession.setCostPerCloudName(totalCost.getAmount());
+                    regSession.setTransactionType(paymentForm.getTxnType());
 
-   /**
-    * Calculate the cost of buying cloudnames, taking cost overrides into account
-    */
-   static CurrencyCost getCostIncludingOverride(CSPModel cspModel, String phoneNumber, int numberOfClouds) {
-      String currency = cspModel.getCurrency();
-      BigDecimal costPerCloud = cspModel.getCostPerCloudName();
+                    mv = new ModelAndView("payment");
+                    mv.addObject("paymentInfo", paymentForm);
+                    mv.addObject("totalAmountText", formatCurrencyAmount(totalCost));
+                }
+            }
+        }
 
-      CSPCostOverrideModel cspCostOverrideModel = null;
-      try
-      {
-         cspCostOverrideModel = DAOFactory.getInstance().getcSPCostOverrideDAO()
-                 .get(cspModel.getCspCloudName(), phoneNumber);
-         if (cspCostOverrideModel != null)
-         {
-            logger.debug("Cost override found: " + cspCostOverrideModel.toString());
-            currency = cspCostOverrideModel.getCurrency();
-            costPerCloud = cspCostOverrideModel.getCostPerCloudName();
-         } else
-         {
-            logger.debug("No cost override found (using default cost)");
-         }
-      } catch (DAOException e)
-      {
-         logger.error(e.toString());
-      }
+        mv.addObject("cloudName", regSession.getCloudName());
+        return errors.withModelView(mv);
+    }
 
-      CurrencyCost costOneCloud = new CurrencyCost(currency, costPerCloud);
-      return costOneCloud.multiply(numberOfClouds);
-   }
+    /**
+     * Calculate the cost of buying cloud names, taking cost overrides into account
+     */
+    static CurrencyCost getCostIncludingOverride(CSPModel cspModel, String phoneNumber, int numberOfClouds) {
+        String currency = cspModel.getCurrency();
+        BigDecimal costPerCloud = cspModel.getCostPerCloudName();
 
-   /**
-    * Format a currency and amount for human display.
-    */
-   static String formatCurrencyAmount(String currency, BigDecimal amount)
-   {
-      // Hack - JDK doesn't seem to have an easy locale-independent way to get this symbol
-      String currencySymbol = "";
-      if (currency.equals("USD") || currency.equals("AUD"))
-      {
-         currencySymbol = "$";
-      }
-      return String.format("%s%04.2f %s", currencySymbol, amount, currency);
-   }
+        CSPCostOverrideModel cspCostOverrideModel;
+        try {
+            cspCostOverrideModel = DAOFactory.getInstance().getcSPCostOverrideDAO().get(cspModel.getCspCloudName(), phoneNumber);
+            if (cspCostOverrideModel != null) {
+                logger.debug("Cost override found: " + cspCostOverrideModel.toString());
+                currency = cspCostOverrideModel.getCurrency();
+                costPerCloud = cspCostOverrideModel.getCostPerCloudName();
+            } else {
+                logger.debug("No cost override found (using default cost)");
+            }
+        } catch (DAOException e) {
+            logger.error(e.toString());
+        }
 
-   /**
-    * Format a currency and amount for human display.
-    */
-   static String formatCurrencyAmount(CurrencyCost currencyCost) {
-      return formatCurrencyAmount(currencyCost.getCurrencyCode(), currencyCost.getAmount());
-   }
+        CurrencyCost costOneCloud = new CurrencyCost(currency, costPerCloud);
+        return costOneCloud.multiply(numberOfClouds);
+    }
 
+    /**
+     * Format a currency and amount for human display.
+     */
+    static String formatCurrencyAmount(CurrencyCost currencyCost) {
+        return formatCurrencyAmount(currencyCost.getCurrencyCode(), currencyCost.getAmount());
+    }
+
+    /**
+     * Format a currency and amount for human display.
+     */
+    static String formatCurrencyAmount(String currency, BigDecimal amount) {
+        // Hack - JDK doesn't seem to have an easy locale-independent way to get this symbol
+        String currencySymbol = "";
+        if (currency.equals("USD") || currency.equals("AUD")) {
+            currencySymbol = "$";
+        }
+        return String.format("%s%04.2f %s", currencySymbol, amount, currency);
+    }
 
    /**
     * This is the endpoint where the user lands in the CSP website from an
@@ -691,7 +654,6 @@ public class RegistrationController
                logger.info(cloudName + " is available, so going to show the validation screen");
                mv = new ModelAndView("userdetails");
                UserDetailsForm userDetailsForm = new UserDetailsForm();
-               userDetailsForm.setCloudName(cloudName);
                mv.addObject("userInfo", userDetailsForm);
                // Add CloudName to Session
                String sessionId = UUID.randomUUID().toString();

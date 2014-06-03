@@ -8,6 +8,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import org.json.simple.JSONValue;
 import org.springframework.context.MessageSource;
+import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collection;
@@ -39,7 +40,14 @@ public class FormErrorsHelper {
         errors.put(formElementName, msg);
     }
 
-    public String toJson() {
+    public ModelAndView withModelView(ModelAndView mv) {
+        if (errors != null && !errors.isEmpty()) {
+            mv.addObject("errors", toJson());
+        }
+        return mv;
+    }
+
+    private String toJson() {
         if (errors == null) {
             return "null";
         }
