@@ -16,21 +16,24 @@
 <div class="container" layout:fragment="bodyContent">
 
     <div class="page-header">
-        <h1>Email and phone verification is required to secure <br/>
+        <h1 th:utext="#{userDetails.title}">Email and phone verification is required to secure <br/>
             your cloud name in the Respect Network.</h1>
     </div>
-
-    <span style="color:red" class="error" th:text="${error}"></span>
 
     <form action="#" th:action="@{/processuserdetails}" method="post"
           class="form-primary" th:object="${userInfo}" id="userDetailsForm">
 
+        <!--/* Errors */-->
+        <div class="form-group" data-show-valid-glyph="false">
+            <div id="error" name="error"></div>
+        </div>
+
         <!--/* Email address */-->
         <div class="form-group" data-show-valid-glyph="false">
             <input type="email" id="email" name="email"
-                   class="form-control" placeholder="email address"
+                   class="form-control" placeholder="email address" th:placeholder="#{userDetails.email.placeHolder}"
                    required="required" autofocus="autofocus"
-                   th:value="*{email}" />
+                   th:value="*{email}"/>
         </div>
 
         <!--/* Mobile number */-->
@@ -41,32 +44,32 @@
                        required="required"
                        th:value="*{cc}"/>
                 <input type="tel" id="mobilePhone" name="mobilePhone"
-                       class="form-control" placeholder="mobile phone"
+                       class="form-control" placeholder="mobile phone" th:placeholder="#{userDetails.mobile.placeHolder}"
                        required="required"
                        th:value="*{mobilePhone}"/>
             </div>
         </div>
 
-        <p class="secondary">Create a password for logging into your personal cloud:<br/>min 8 char with 2 digits, 2
+        <p class="secondary" th:utext="#{userDetails.password.help}">Create a password for logging into your personal cloud:<br/>min 8 char with 2 digits, 2
             letters and 1 symbol e.g. @,#,$
         </p>
 
         <!--/* Password fields */-->
         <div class="form-group">
             <input type="password" id="password" name="password"
-                   class="form-control" placeholder="create password"
+                   class="form-control" placeholder="create password" th:placeholder="#{userDetails.password.placeHolder}"
                    required="required"/>
         </div>
 
         <div class="form-group">
             <input type="password" id="confirmPassword" name="confirmPassword"
-                   class="form-control" placeholder="confirm password"
+                   class="form-control" placeholder="confirm password" th:placeholder="#{userDetails.confirmPassword.placeHolder}"
                    required="required"/>
         </div>
 
         <div id="responseDiv" class="error" style="color:red"></div>
 
-        <button type="submit" name="submitBtn" id="submitBtn" class="button btn btn-lg btn-primary">Next</button>
+        <button type="submit" name="submitBtn" id="submitBtn" class="button btn btn-lg btn-primary" th:utext="#{form.next}">Next</button>
 
     </form>
 </div>
@@ -74,13 +77,30 @@
 <th:block layout:fragment="postFooterContent">
     <script src="js/libs/intlTelInput.min.js"></script>
     <script src="js/libs/data.js"></script>
-    <script>
+    <script th:inline="javascript">
         /*<![CDATA[*/
         $("#cc").intlTelInput();
 
         $(document).ready(function () {
 
+            var msg = {
+                emailRequired: /*[[#{userDetails.msg.email.required}]]*/ 'Please enter a valid email address',
+                ccRequired: /*[[#{userDetails.msg.cc.required}]]*/ 'Please choose a country code',
+                mobileRequired: /*[[#{userDetails.msg.mobile.required}]]*/ 'Please enter a mobile number',
+                passwordRequired: /*[[#{userDetails.msg.password.required}]]*/ 'Please provide a password',
+                passwordMinLength: /*[[#{userDetails.msg.password.minLength}]]*/ 'Your password must be at least {0} characters',
+                passwordAlpha: /*[[#{userDetails.msg.password.alpha}]]*/ 'Password must contain at least {0} letters',
+                passwordNumeric: /*[[#{userDetails.msg.password.numeric}]]*/ 'Password must contain at least {0} numbers',
+                passwordSymbolic: /*[[#{userDetails.msg.password.symbolic}]]*/ 'Password must contain at least {0} symbols',
+                confirmPasswordRequired: /*[[#{userDetails.msg.confirmPassword.required}]]*/ 'Please repeat password',
+                confirmPasswordEqualTo: /*[[#{userDetails.msg.confirmPassword.equalTo}]]*/ 'Passwords do not match'
+            };
+
             function satisfiesRange(value, reqCount, range) {
+                if (reqCount <= 0) {
+                    return true;
+                }
+
                 var foundCount = 0;
                 for (var i = 0; i < value.length; i++) {
                     var idx = range.indexOf(value[i]);
@@ -133,9 +153,9 @@
                     password: {
                         required: true,
                         minlength: PASSWORD_MIN_LENGTH,
-                        checkPasswordAlpha: { count: PASSWORD_MIN_ALPHA, range: PASSWORD_ALPHA },
-                        checkPasswordNumeric: { count: PASSWORD_MIN_NUMERIC, range: PASSWORD_NUMERIC },
-                        checkPasswordSymbolic: { count: PASSWORD_MIN_SYMBOLIC, range: PASSWORD_SYMBOLS }
+                        checkPasswordAlpha: { count: PASSWORD_MIN_ALPHA, range: PASSWORD_ALPHA, toString: function () { return this.count; } },
+                        checkPasswordNumeric: { count: PASSWORD_MIN_NUMERIC, range: PASSWORD_NUMERIC, toString: function () { return this.count; } },
+                        checkPasswordSymbolic: { count: PASSWORD_MIN_SYMBOLIC, range: PASSWORD_SYMBOLS, toString: function () { return this.count; } }
                     },
                     confirmPassword: {
                         required: true,
@@ -143,28 +163,30 @@
                     }
                 },
                 messages: {
-                    email: 'Please enter a valid email address',
-                    cc: 'Please choose a country code',
-                    mobilePhone: 'Please enter a mobile number',
+                    email: msg.emailRequired,
+                    cc: msg.ccRequired,
+                    mobilePhone: msg.mobileRequired,
                     password: {
-                        required: 'Please provide a password',
-                        minlength: 'Your password must be at least ' + PASSWORD_MIN_LENGTH + ' characters',
-                        checkPasswordAlpha: 'Password must contain at least ' + PASSWORD_MIN_ALPHA + ' letter' + (PASSWORD_MIN_ALPHA > 1 ? 's' : ''),
-                        checkPasswordNumeric: 'Password must contain at least ' + PASSWORD_MIN_NUMERIC + ' number' + (PASSWORD_MIN_NUMERIC > 1 ? 's' : ''),
-                        checkPasswordSymbolic: 'Password must contain at least ' + PASSWORD_MIN_SYMBOLIC + ' symbol' + (PASSWORD_MIN_SYMBOLIC > 1 ? 's' : '')
+                        required: msg.passwordRequired,
+                        checkPasswordAlpha: msg.passwordAlpha,
+                        checkPasswordNumeric: msg.passwordNumeric,
+                        checkPasswordSymbolic: msg.passwordSymbolic,
+                        minlength: msg.passwordMinLength
                     },
                     confirmPassword: {
-                        required: 'Please repeat password',
-                        equalTo: 'Passwords do not much'
+                        required: msg.confirmPasswordRequired,
+                        equalTo: msg.confirmPasswordEqualTo
                     }
                 },
                 groups: {
-                    mobile: "cc mobilePhone"
+                    mobile: 'cc mobilePhone'
                 }
-            });
+            }, /*[[${errors}]]*/ null
+            );
         });
         /*]]>*/
     </script>
+
 </th:block>
 
 </body>

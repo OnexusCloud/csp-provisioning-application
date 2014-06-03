@@ -12,24 +12,29 @@
 <div class="container" layout:fragment="bodyContent">
 
     <div class="page-header">
-        <h1>Choose your cloud name:</h1>
-		<br/><span style="color:red" th:text="${error}"></span>
+        <h1 th:utext="#{signUp.title}">Choose your cloud name:</h1>
     </div>
 
     <form action="#" th:action="@{/signup}" method="post"
           class="form-primary" role="form" th:object="${signUpInfo}"
-          autocomplete="off" accept-charset="UTF-8" id="signupForm">
+          autocomplete="off" accept-charset="UTF-8" id="signUpForm">
 
+        <!--/* Errors */-->
+        <div class="form-group" data-show-valid-glyph="false">
+            <div id="error" name="error"></div>
+        </div>
+
+        <!--/* Cloud Name */-->
         <div class="form-group" id="cloudNameGroup">
-            <input type="text" id="cloudName" name="cloudName" class="form-control" placeholder="=you..."
+            <input type="text" id="cloudName" name="cloudName" class="form-control" placeholder="=you..." th:placeholder="#{signUp.cloudName.placeholder}"
                    autofocus="autofocus" required="required" th:value="${cloudName}" />
             <span id="cloudNameHelpIcon" class="glyphicon glyphicon-ok form-control-feedback hidden"></span>
             <span id="cloudNameHelp" class="form-control-feedback"></span>
         </div>
 
-        <p class="secondary">e.g., =jane, =janedoe, =jane.doe</p>
+        <p class="secondary" th:utext="#{signUp.cloudName.help}">e.g., =jane, =janedoe, =jane.doe</p>
 
-        <button type="submit" name="submitBtn" id="submitBtn" class="btn btn-lg btn-primary">Next</button>
+        <button type="submit" name="submitBtn" id="submitBtn" class="btn btn-lg btn-primary" th:utext="#{form.next}">Next</button>
 
         <input type="hidden" name="giftCode" id="giftCode" th:value="*{giftCode}" th:if="${signUpInfo} != null"/>
     </form>
@@ -40,6 +45,12 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
         $(document).ready(function () {
+
+            var msg = {
+                available: /*[[#{signUp.msg.available}]]*/ 'Your cloud name is available',
+                unavailable: /*[[#{signUp.msg.unavailable}]]*/ 'This cloud name is NOT available',
+                formatting: /*[[#{signUp.msg.formatting}]]*/ 'Cloud names must contain at least 2 letters, numbers, or dots'
+            };
 
             var cloudNameGroup = $('#cloudNameGroup');
             var cloudNameHelpIcon = $('#cloudNameHelpIcon');
@@ -81,17 +92,17 @@
                     cloudNameHelpIcon.removeClass('hidden');
 
                     if (success === 1) { // available
-                        messageSpan.html('Your cloud name is available');
+                        messageSpan.html(msg.available);
                         cloudNameGroup.addClass('has-success');
                         cloudNameHelpIcon.addClass('glyphicon-ok');
                         isAvailable = true;
                     } else if (success === 0) { // unavailable
-                        messageSpan.html("This cloud name is NOT available");
+                        messageSpan.html(msg.unavailable);
                         cloudNameGroup.addClass('has-warning');
                         cloudNameHelpIcon.addClass('glyphicon-warning-sign');
                     } else { // formatting error
                         cloudNameGroup.addClass('has-error');
-                        messageSpan.html("Cloud names must contain at least 2 letters, numbers, or dots");
+                        messageSpan.html(msg.formatting);
                         cloudNameHelpIcon.addClass('glyphicon-remove');
                     }
                 },
@@ -116,21 +127,22 @@
             });
 
             $.validator.addMethod("isAvailable", function (value, element, param) {
-                return isAvailable;
+                return true;//isAvailable;
             });
 
-            addFormValidation('#signupForm', {
+            addFormValidation('#signUpForm', {
                 rules: {
                     cloudName: {
                         required: true,
-                        minlength: 3,
+                        minlength: 0,
                         isAvailable: true
                     }
                 },
                 errorPlacement: function(error, element) {
                     // nothing - using custom error msgs
                 }
-            });
+            }, /*[[${errors}]]*/ null
+            );
         });
         /*]]>*/
     </script>

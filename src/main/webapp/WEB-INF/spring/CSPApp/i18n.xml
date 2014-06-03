@@ -5,13 +5,11 @@
              xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
-    <beans:bean id="localeResolver"
-                class="org.springframework.web.servlet.i18n.SessionLocaleResolver">
+    <beans:bean id="localeResolver" class="org.springframework.web.servlet.i18n.SessionLocaleResolver">
         <beans:property name="defaultLocale" value="en_US"/>
     </beans:bean>
 
-    <beans:bean id="localeChangeInterceptor"
-                class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor">
+    <beans:bean id="localeChangeInterceptor" class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor">
         <beans:property name="paramName" value="lang"/>
     </beans:bean>
 

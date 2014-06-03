@@ -1,6 +1,41 @@
 package net.respectnetwork.csp.application.controller;
 
-import java.io.InputStream;
+import com.maxmind.geoip.Location;
+import com.maxmind.geoip.LookupService;
+import net.respectnetwork.csp.application.csp.CurrencyCost;
+import net.respectnetwork.csp.application.dao.DAOException;
+import net.respectnetwork.csp.application.dao.DAOFactory;
+import net.respectnetwork.csp.application.exception.UserRegistrationException;
+import net.respectnetwork.csp.application.util.FormErrorsHelper;
+import net.respectnetwork.csp.application.form.PaymentForm;
+import net.respectnetwork.csp.application.form.SignUpForm;
+import net.respectnetwork.csp.application.form.UserDetailsForm;
+import net.respectnetwork.csp.application.form.ValidateForm;
+import net.respectnetwork.csp.application.manager.RegistrationManager;
+import net.respectnetwork.csp.application.model.CSPCostOverrideModel;
+import net.respectnetwork.csp.application.model.CSPModel;
+import net.respectnetwork.csp.application.model.InviteModel;
+import net.respectnetwork.csp.application.session.RegistrationSession;
+import net.respectnetwork.sdk.csp.validation.CSPValidationException;
+import org.apache.commons.validator.routines.EmailValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Required;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.ModelAndView;
+import xdi2.core.xri3.CloudNumber;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -9,41 +44,7 @@ import java.net.URLEncoder;
 import java.util.Enumeration;
 import java.util.UUID;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
-
-import net.respectnetwork.csp.application.csp.CurrencyCost;
-import net.respectnetwork.csp.application.dao.DAOException;
-import net.respectnetwork.csp.application.dao.DAOFactory;
-import net.respectnetwork.csp.application.exception.UserRegistrationException;
-import net.respectnetwork.csp.application.form.PaymentForm;
-import net.respectnetwork.csp.application.form.SignUpForm;
-import net.respectnetwork.csp.application.form.UserDetailsForm;
-import net.respectnetwork.csp.application.form.ValidateForm;
-import net.respectnetwork.csp.application.manager.RegistrationManager;
-import net.respectnetwork.csp.application.model.CSPCostOverrideModel;
-import net.respectnetwork.csp.application.model.CSPModel;
-import net.respectnetwork.csp.application.session.RegistrationSession;
-import net.respectnetwork.sdk.csp.validation.CSPValidationException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Required;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Controller;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.servlet.ModelAndView;
-
-import xdi2.core.xri3.CloudNumber;
-
-import com.maxmind.geoip.Location;
-import com.maxmind.geoip.LookupService;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * Handles requests for the application home page.
@@ -67,6 +68,9 @@ public class RegistrationController
    public static final String URL_PARAM_NAME_REQ_CLOUDNAME     = "name"   ;
 
    private static LookupService        geoIpLookupService = null;
+
+   @Autowired
+   private MessageSource messageSource;
 
    private static synchronized void geoIpLookupServiceInit()
    {
@@ -157,263 +161,194 @@ public class RegistrationController
     @Value("${csp.refererURL}")
     private String refererURL;
 
-   /**
-    * Initial Sign-Up Page
-    */
-   @RequestMapping(value = "/signup", method = RequestMethod.POST)
-   public ModelAndView signup(
-         @Valid @ModelAttribute("signUpInfo") SignUpForm signUpForm,
-         HttpServletRequest request, HttpServletResponse response,
-         BindingResult result)
-   {
+    /**
+     * Initial Sign-Up Page
+     */
+    @RequestMapping(value = "/signup", method = RequestMethod.POST)
+    public ModelAndView signup(@Valid @ModelAttribute("signUpInfo") SignUpForm signUpForm,
+                               HttpServletRequest request,
+                               HttpServletResponse response,
+                               BindingResult result) {
+        logger.debug("Starting the Sign Up Process");
 
-      logger.debug("Starting the Sign Up Process");
+        FormErrorsHelper errors = new FormErrorsHelper(messageSource, request);
 
-      ModelAndView mv = null;
-      boolean errors = false;
+        String cloudName = signUpForm.getCloudName();
+        String inviteCode = signUpForm.getInviteCode();
+        String giftCode = signUpForm.getGiftCode();
+        logger.debug("cloudName={}, inviteCode={}, giftCode={}", cloudName, inviteCode, giftCode);
 
-      String cloudName = signUpForm.getCloudName();
-      
-      String inviteCode = signUpForm.getInviteCode();
-      String giftCode = signUpForm.getGiftCode();
-
-      logger.debug("Invite Code = " + inviteCode);
-      logger.debug("Gift Code = " + giftCode);
-      logger.debug("Cloud Name : " + cloudName);
-
-      mv = new ModelAndView("signup");
-
-      if (cloudName != null)
-      {
-         // Start Check that the Cloud Number is Available.
-         if(!cloudName.startsWith("="))
-         {
-            cloudName = "=" + cloudName; 
-         }
-         try
-         {
-            if (theManager.isRequireInviteCode()
-                  && ((inviteCode == null) || (inviteCode.trim().isEmpty())))
-            {
-               errors = true;
-               logger.debug("Invite code is required and it has not been passed in the input query parameters(inviteCode=)");
-            } else if (!theManager.isCloudNameAvailable(cloudName))
-            {
-               String errorStr = "CloudName not Available";
-               mv.addObject("cloudNameError", errorStr);
-               errors = true;
+        // Validate invite code
+        if (isNullOrEmpty(inviteCode)) {
+            if (theManager.isRequireInviteCode()) {
+                logger.debug("Invite code required but missing :: inviteCode={}", inviteCode);
+                errors.add("error", "signUp.msg.invite.codeMissing");
             }
-         } catch (UserRegistrationException e)
-         {
-            String errorStr = "System Error checking CloudName";
-            logger.warn(errorStr + " : {}", e.getMessage());
-            mv.addObject("error", errorStr);
-            errors = true;
-         }
-         UserDetailsForm userDetailsForm = new UserDetailsForm();
-         userDetailsForm.setCloudName(cloudName);
-         
-         /*
-         InviteModel invite = null;
-         // add the email address of the person who was invited in the
-         // userDetailsForm object, the user shouldn't be able to change it
-         DAOFactory dao = DAOFactory.getInstance();
-         UserDetailsForm userDetailsForm = new UserDetailsForm();
-         try
-         {
-            invite = dao.getInviteDAO().get(inviteCode);
-            if (invite != null
-                  && (invite.getInvitedEmailAddress() != null && !invite
-                        .getInvitedEmailAddress().trim().isEmpty()))
-            {
-               userDetailsForm.setEmail(invite.getInvitedEmailAddress());
-            } else
-            {
-               logger.error("This invite object does not have an email address or another valid identifier associated to it. Sending user to the signup page.");
-               errors = true;
-            }
-         } catch (DAOException e)
-         {
-            logger.error("Could not get invite information from DB. Sending user to the signup page.");
-            errors = true;
-         }
-         */
-         if (!errors)
-         {
-            mv = new ModelAndView("userdetails");
+        } else {
+            try {
+                DAOFactory dao = DAOFactory.getInstance();
+                InviteModel invite = dao.getInviteDAO().get(inviteCode);
+                String invitedEmailAddr = invite.getInvitedEmailAddress();
 
+                if (!isNullOrEmpty(invitedEmailAddr)) {
+                    // todo save invite code somewhere
+                    // userDetailsForm.setEmail(invite.getInvitedEmailAddress()); // can't put it in form as it can be manipulated very easily
+                    logger.error("todo invitee code save not implemented!");
+                } else {
+                    logger.warn("Invite code not associated with user :: inviteCode={}", inviteCode);
+                    errors.add("error", "signUp.msg.invite.invalid");
+                }
+            } catch (Exception e) {
+                logger.error("Error validating invite code", e);
+                errors.add("error", "signUp.msg.invite.validationError");
+            }
+        }
+
+        // Validate cloud name
+        if (errors.isEmpty()) {
+            if (isNullOrEmpty(cloudName)) {
+                logger.debug("No cloud name supplied :: cloudName={}", cloudName);
+                errors.add("error", "signUp.msg.formatting");
+            } else {
+                if (!cloudName.startsWith("=")) {
+                    cloudName = "=" + cloudName;
+                }
+
+                try {
+                    if (!theManager.isCloudNameAvailable(cloudName)) {
+                        logger.debug("Cloud name not available :: cloudName={}", cloudName);
+                        errors.add("error", "signUp.msg.unavailable");
+                    }
+                } catch (UserRegistrationException e) {
+                    logger.error("Error checking if cloud name available");
+                    errors.add("error", "signUp.msg.nameCheckError");
+                }
+            }
+        }
+
+        // Response
+        ModelAndView mv;
+        if (errors.isEmpty()) {
+            mv = new ModelAndView("userDetails");
+
+            UserDetailsForm userDetailsForm = new UserDetailsForm();
+            userDetailsForm.setCloudName(cloudName);
             mv.addObject("userInfo", userDetailsForm);
-
-            // Add CloudName to Session
 
             String sessionId = UUID.randomUUID().toString();
             regSession.setSessionId(sessionId);
             regSession.setCloudName(cloudName);
-            //regSession.setInviteCode(inviteCode);
             regSession.setGiftCode(giftCode);
-            //regSession.setVerifiedEmail(invite.getInvitedEmailAddress());
+        } else {
+            mv = new ModelAndView("signUp");
+            mv.addObject("signUpInfo", signUpForm);
+            mv.addObject("errors", errors.toJson());
+        }
 
-         } else
-         {
-            mv = new ModelAndView("signup");
-         }
+        return mv;
+    }
 
-      }
-      mv.addObject("signupInfo", signUpForm);
+    /**
+     * Get User Details
+     */
+    @RequestMapping(value = "/processuserdetails", method = RequestMethod.POST)
+    public ModelAndView getDetails(@Valid @ModelAttribute("userInfo") UserDetailsForm userDetailsForm,
+                                   HttpServletRequest request,
+                                   HttpServletResponse response,
+                                   BindingResult result) {
+        logger.debug("Get User Details");
 
-      return mv;
-   }
+        FormErrorsHelper errors = new FormErrorsHelper(messageSource, request);
 
-   /**
-    * Get User Details
-    */
-   @RequestMapping(value = "/processuserdetails", method = RequestMethod.POST)
-   public ModelAndView getDetails(
-         @Valid @ModelAttribute("userInfo") UserDetailsForm userDetailsForm,
-         HttpServletRequest request, HttpServletResponse response,
-         BindingResult result)
-   {
+        // Validate session
+        String sessionId = regSession.getSessionId();
+        String cloudName = regSession.getCloudName();
+        if (isNullOrEmpty(sessionId) || isNullOrEmpty(cloudName)) {
+            logger.debug("Invalid sessionId or cloudName :: sessionId={}, cloudName={}", sessionId, cloudName);
+            errors.add("error", "form.invalidSession");
 
-      logger.debug("Get User Details");
+            ModelAndView mv = new ModelAndView("userDetails");
+            mv.addObject("userInfo", userDetailsForm);
+            mv.addObject("errors", errors.toJson());
+            return mv;
+        }
 
-      ModelAndView mv = null;
-      boolean errors = false;
-      mv = new ModelAndView("userdetails");
-      mv.addObject("userInfo", userDetailsForm);
+        // Validate email
+        String email = userDetailsForm.getEmail();
+        if (!EmailValidator.getInstance().isValid(email)) {
+            logger.debug("Invalid email :: email={}", email);
+            errors.add("email", "userDetails.msg.email.invalid");
+        }
 
-      String cn = regSession.getCloudName();
-      String sessionId = regSession.getSessionId();
+        // Validate phone
+        String phone = userDetailsForm.getPhone();
+        if (!RegistrationManager.validatePhoneNumber(phone)) {
+            logger.debug("Invalid phone :: phone={}", phone);
+            errors.add("mobilePhone", "userDetails.msg.phone.invalid");
+        }
 
-      // Session Check
-      if (sessionId == null || cn == null)
-      {
-         errors = true;
-         mv.addObject("error", "Invalid Session");
-      }
+        // Validate password
+        String password = userDetailsForm.getPassword();
+        if (!RegistrationManager.validatePassword(password)) {
+            logger.debug("Invalid password :: password={}" + password);
+            errors.add("password", "userDetails.msg.password.invalid");
+        }
 
-      if (!errors)
-      {
-         
-         try
-         {
-         // validate email address entered by user
-         if (!org.apache.commons.validator.routines.EmailValidator
-                  .getInstance().isValid(userDetailsForm.getEmail())) 
-         {
-              String errorStr = "Invalid Email Address.";
-              logger.debug("Invalid Email address entered..."
-                      + userDetailsForm.getEmail());
-              mv.addObject("error", errorStr);
-              errors = true;
-              return mv;
-          }
-           if(!RegistrationManager.validatePhoneNumber(userDetailsForm.getPhone()))
-           {
-              String errorStr = "Invalid Phone Number. Please provide your phone number in international format (+ccnnnnnnnnn)";
-              logger.debug("Invalid Phone Number entered..."
-                      + userDetailsForm.getPhone());
-              mv.addObject("error", errorStr);
-              errors = true;
-              return mv;  
-           }
-           if(!RegistrationManager.validatePassword(userDetailsForm.getPassword()))
-           {
-              String errorStr = "Invalid password. Please provide a password that is at least 8 characters, have at least 2 letters, 2 numbers and at least one special character, e.g. @, #, $ etc.";
-              logger.debug("Invalid password."
-                      + userDetailsForm.getPassword());
-              mv.addObject("error", errorStr);
-              errors = true;
-              return mv;  
-           }
-           if(!userDetailsForm.getPassword().equals(userDetailsForm.getConfirmPassword()))
-           {
-              String errorStr = "Password and confirm password fields do not match.";
-              logger.debug("Password and confirm password fields do not match"
-                      + userDetailsForm.getPassword() + ":" + userDetailsForm.getConfirmPassword());
-              mv.addObject("error", errorStr);
-              errors = true;
-              return mv;
-           }
-            CloudNumber[] existingUsers = theManager
-                  .checkEmailAndMobilePhoneUniqueness(
-                        userDetailsForm.getPhone(),
-                        userDetailsForm.getEmail());
-            
-            if (existingUsers[0] != null)
-            {
-               // Communicate back to Form phone is already taken
-               String errorStr = "Phone number has already been used for a cloud name";
-               mv.addObject("error", errorStr);
-               logger.debug("Phone {} already used by {}",
-                     userDetailsForm.getPhone(), existingUsers[0]);
-               errors = true;
+        // Validate confirm password
+        String confirmPassword = userDetailsForm.getConfirmPassword();
+        if (isNullOrEmpty(password) || !password.equals(confirmPassword)) {
+            logger.debug("password != confirmPassword :: password={}, confirmPassword={}", password, confirmPassword);
+            errors.add("confirmPassword", "userDetails.msg.confirmPassword.equalTo");
+        }
+
+        // Validate existing user
+        try {
+            CloudNumber[] existingUsers = theManager.checkEmailAndMobilePhoneUniqueness(phone, email);
+            if (existingUsers[0] != null) {
+                logger.debug("Phone not unique :: phone={}, existingUser={}", phone, existingUsers[0]);
+                errors.add("mobilePhone", "userDetails.msg.phone.used");
             }
-            if (existingUsers[1] != null)
-            {
-               String errorStr = "Email has already been used for a cloud name";
-               mv.addObject("error", errorStr);
-               logger.debug("Email {} already used by {}",
-                     userDetailsForm.getEmail(), existingUsers[1]);
-               errors = true;
+            if (existingUsers[1] != null) {
+                logger.debug("Email not unique :: email={}, existingUser={}", email, existingUsers[1]);
+                errors.add("email", "userDetails.msg.email.used");
             }
-            
-            /*
-            if (existingUsers[0] != null && existingUsers[1] != null)
-            {
-               String errorStr = "The Email and phone combination has already been used for a cloud name";
-               mv.addObject("error", errorStr);
-               logger.debug("Email {} already used by {} , phone {} already used by {} ",
-                     userDetailsForm.getEmail(), existingUsers[1], userDetailsForm.getMobilePhone(),existingUsers[0]);
-               errors = true;
+        } catch (Exception e) {
+            logger.error("Failed to check email and phone uniqueness!", e);
+            errors.add("error", "userDetails.msg.uniquenessError");
+        }
+
+        // Send validation codes
+        if (errors.isEmpty()) {
+            try {
+                theManager.sendValidationCodes(sessionId, email, phone);
+            } catch (Exception e) {
+                logger.warn("Failed to send validation codes", e);
+                errors.add("error", "userDetails.msg.sendCodesError");
             }
-            */
-         } catch (UserRegistrationException e)
-         {
-            String errorStr = "System Error checking Email/Phone Number Uniqueness";
-            logger.warn(errorStr + " : {}", e.getMessage());
-            mv.addObject("error", errorStr);
-            errors = true;
-         }
-      }
+        }
 
-      if (!errors)
-      {
+        // Response
+        ModelAndView mv;
+        if (errors.isEmpty()) {
+            mv = new ModelAndView("validate");
+            mv.addObject("validateInfo", new ValidateForm());
+            mv.addObject("cloudName", cloudName);
+            mv.addObject("verifyingEmail", email);
+            mv.addObject("verifyingPhone", phone);
 
-         // If all is okay send out the validation messages.
-         try
-         {
-            theManager.sendValidationCodes(sessionId,
-                  userDetailsForm.getEmail(), userDetailsForm.getPhone());
-         } catch (CSPValidationException e)
-         {
-            String errorStr = "System Error sending validation messages. Please check email and mobile phone number.";
-            logger.warn(errorStr + " : {}", e.getMessage());
-            mv.addObject("error", errorStr);
-            errors = true;
-         }
-      }
+            // Add CloudName/ Email / Password and Phone to Session
+            logger.debug("Setting verified email {}", email);
+            regSession.setVerifiedEmail(email);
+            regSession.setVerifiedMobilePhone(phone);
+            regSession.setPassword(password);
+        } else {
+            mv = new ModelAndView("userDetails");
+            mv.addObject("userInfo", userDetailsForm);
+            mv.addObject("errors", errors.toJson());
+        }
 
-      if (!errors)
-      {
-         mv = new ModelAndView("validate");
-         ValidateForm validateForm = new ValidateForm();
-         mv.addObject("validateInfo", validateForm);
-         mv.addObject("cloudName", regSession.getCloudName());
-         mv.addObject("verifyingEmail", userDetailsForm.getEmail());
-         mv.addObject("verifyingPhone", userDetailsForm.getPhone());
-
-         // Add CloudName/ Email / Password and Phone to Session
-
-         logger.debug("Setting verified email " + regSession.getVerifiedEmail());
-         regSession.setVerifiedEmail(userDetailsForm.getEmail());
-         regSession.setVerifiedMobilePhone(userDetailsForm.getPhone());
-         regSession.setPassword(userDetailsForm.getPassword());
-      }
-
-      mv.addObject("userInfo", userDetailsForm);
-
-      return mv;
-   }
+        return mv;
+    }
 
    /**
     * Validate Confirmation Codes,

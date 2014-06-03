@@ -25,8 +25,8 @@ if (typeof String.prototype.startsWith != 'function') {
     };
 }
 
-function addFormValidation(formSelector, validation) {
-    $(formSelector).validate($.extend({
+function addFormValidation(formSelector, validation, errorsEncoded) {
+    var validator = $(formSelector).validate($.extend({
         errorClass: 'form-control-feedback',
         validClass: 'form-control-feedback',
 
@@ -92,4 +92,11 @@ function addFormValidation(formSelector, validation) {
             this.settings.getElements(element).closest('[class~="form-group"]').removeClass('has-error').addClass('has-success');
         }
     }, validation));
+
+    if (errorsEncoded) {
+        var errors = eval('(' + decodeURIComponent(errorsEncoded) + ')');
+        validator.showErrors(errors);
+    }
+
+    return validator;
 }
