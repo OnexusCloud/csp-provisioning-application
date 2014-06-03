@@ -143,7 +143,10 @@ public class UserDetailsForm {
    }
    public void setCc(String cc)
    {
-      this.cc = cc;
+       if (cc != null) {
+           cc = cc.replace(" ", ""); // remove any formatting spaces
+       }
+       this.cc = cc;
    }
 
     public String getPhone()

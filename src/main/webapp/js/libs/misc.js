@@ -25,6 +25,24 @@ if (typeof String.prototype.startsWith != 'function') {
     };
 }
 
+// custom validation function that requires x elements from selector to all be valid before any can be valid
+// usage (in each elements rules):
+// requireFromGroup: [x, '.selector']
+$.validator.addMethod('requireFromGroup', function (value, element, params) {
+    var minRequired = params[0];
+    var selector = params[1];
+    return $(selector, element.form).filter(function () {
+        var valid = true;
+        if (!$(this).data('being_validated')) { // stop inf. loop
+            var fields = $(selector, element.form);
+            fields.data('being_validated', true);
+            valid = fields.valid();
+            fields.data('being_validated', false);
+        }
+        return valid;
+    }).length >= minRequired;
+});
+
 function addFormValidation(formSelector, validation, errorsEncoded) {
     var validator = $(formSelector).validate($.extend({
         errorClass: 'form-control-feedback',
