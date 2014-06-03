@@ -6,7 +6,6 @@ import net.respectnetwork.csp.application.csp.CurrencyCost;
 import net.respectnetwork.csp.application.dao.DAOException;
 import net.respectnetwork.csp.application.dao.DAOFactory;
 import net.respectnetwork.csp.application.exception.UserRegistrationException;
-import net.respectnetwork.csp.application.util.FormErrorsHelper;
 import net.respectnetwork.csp.application.form.PaymentForm;
 import net.respectnetwork.csp.application.form.SignUpForm;
 import net.respectnetwork.csp.application.form.UserDetailsForm;
@@ -16,6 +15,7 @@ import net.respectnetwork.csp.application.model.CSPCostOverrideModel;
 import net.respectnetwork.csp.application.model.CSPModel;
 import net.respectnetwork.csp.application.model.InviteModel;
 import net.respectnetwork.csp.application.session.RegistrationSession;
+import net.respectnetwork.csp.application.util.FormErrorsHelper;
 import net.respectnetwork.sdk.csp.validation.CSPValidationException;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.slf4j.Logger;
@@ -30,6 +30,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 import xdi2.core.xri3.CloudNumber;
 
@@ -208,20 +210,25 @@ public class RegistrationController
         if (errors.isEmpty()) {
             if (isNullOrEmpty(cloudName)) {
                 logger.debug("No cloud name supplied :: cloudName={}", cloudName);
-                errors.add("error", "signUp.msg.formatting");
+                errors.add("error", "signUp.msg.invalid");
             } else {
                 if (!cloudName.startsWith("=")) {
                     cloudName = "=" + cloudName;
                 }
 
-                try {
-                    if (!theManager.isCloudNameAvailable(cloudName)) {
-                        logger.debug("Cloud name not available :: cloudName={}", cloudName);
-                        errors.add("error", "signUp.msg.unavailable");
+                if (!RegistrationManager.validateCloudName(cloudName)) {
+                    logger.debug("Cloud name invalid :: cloudName={}", cloudName);
+                    errors.add("error", "signUp.msg.invalid");
+                } else {
+                    try {
+                        if (!theManager.isCloudNameAvailable(cloudName)) {
+                            logger.debug("Cloud name not available :: cloudName={}", cloudName);
+                            errors.add("error", "signUp.msg.unavailable");
+                        }
+                    } catch (UserRegistrationException e) {
+                        logger.error("Error checking if cloud name available");
+                        errors.add("error", "signUp.msg.nameCheckError");
                     }
-                } catch (UserRegistrationException e) {
-                    logger.error("Error checking if cloud name available");
-                    errors.add("error", "signUp.msg.nameCheckError");
                 }
             }
         }
@@ -246,6 +253,33 @@ public class RegistrationController
         }
 
         return mv;
+    }
+
+    @ResponseBody
+    @RequestMapping(value="/checkCloudName", method = RequestMethod.GET, params = {"cloudName", "callback"})
+    public String checkCloudName(@RequestParam("cloudName") String cloudName,
+                                 @RequestParam("callback") String callback) {
+        boolean error = false;
+        boolean valid = false;
+        boolean available = false;
+
+        try {
+            if (!isNullOrEmpty(cloudName) && !cloudName.contains(" ")) {
+                if (!cloudName.startsWith("=")) {
+                    cloudName = "=" + cloudName;
+                }
+
+                valid = RegistrationManager.validateCloudName(cloudName);
+                if (valid) {
+                    available = theManager.isCloudNameAvailable(cloudName);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to check cloud name", e);
+            error = true;
+        }
+
+        return String.format("%s({'isError':%s, 'isValid':%s, 'isAvailable':%s});", callback, error, valid, available);
     }
 
     /**

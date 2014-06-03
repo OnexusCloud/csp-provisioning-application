@@ -27,7 +27,7 @@
         <!--/* Cloud Name */-->
         <div class="form-group" id="cloudNameGroup">
             <input type="text" id="cloudName" name="cloudName" class="form-control" placeholder="=you..." th:placeholder="#{signUp.cloudName.placeholder}"
-                   autofocus="autofocus" required="required" th:value="${cloudName}" />
+                   autofocus="autofocus" required="required" th:value="*{cloudName}" />
             <span id="cloudNameHelpIcon" class="glyphicon glyphicon-ok form-control-feedback hidden"></span>
             <span id="cloudNameHelp" class="form-control-feedback"></span>
         </div>
@@ -41,93 +41,20 @@
 </div>
 
 <th:block layout:fragment="postFooterContent">
-    <script src="js/libs/nameavailability.js"></script>
+    <script src="js/libs/checkCloudName.js"></script>
     <script th:inline="javascript">
         /*<![CDATA[*/
         $(document).ready(function () {
 
             var msg = {
+                error: /*[[#{signUp.msg.error}]]*/ 'Unknown error while checking cloud name',
                 available: /*[[#{signUp.msg.available}]]*/ 'Your cloud name is available',
                 unavailable: /*[[#{signUp.msg.unavailable}]]*/ 'This cloud name is NOT available',
-                formatting: /*[[#{signUp.msg.formatting}]]*/ 'Cloud names must contain at least 2 letters, numbers, or dots'
+                invalid: /*[[#{signUp.msg.invalid}]]*/ 'Cloud names must contain at least any 2 of<br/><b>letters&nbsp;numbers&nbsp;.&nbsp;-</b><br/>with no consecutive (or ending/starting with) <b>.</b> or <b>-</b>'
             };
 
-            var cloudNameGroup = $('#cloudNameGroup');
-            var cloudNameHelpIcon = $('#cloudNameHelpIcon');
-
-            // the value of this var is the id of the input element
-            // that the user is typing into
-            var cloudNameField = "#cloudName";
-            var cloudNameInput = $(cloudNameField);
-
-            // the value of this var is the id of the display element
-            // that will be used to convey information to the user
-            var messageSpan = $(cloudNameField + 'Help');
-
-            var isAvailable = false;
-
-            cloudNameInput.checkCloud({
-
-                completed: function (elem, success) {
-
-                    // no longer loading
-                    cloudNameInput.removeClass('btn-primary-loading');
-
-                    // reset view state
-                    cloudNameGroup.removeClass('has-success has-warning has-error');
-                    cloudNameHelpIcon.addClass('hidden');
-                    cloudNameHelpIcon.removeClass('glyphicon-ok glyphicon-remove glyphicon-warning-sign');
-
-                    // success var will contain a 1 if the name is available and 0 if it not available.
-                    if (this.debug) {
-                        console.log('Checking cloud... :: success=' + success);
-                    }
-
-                    // clear error
-                    if (cloudNameInput.val().trim() == '') {
-                        messageSpan.html('');
-                        return;
-                    }
-
-                    cloudNameHelpIcon.removeClass('hidden');
-
-                    if (success === 1) { // available
-                        messageSpan.html(msg.available);
-                        cloudNameGroup.addClass('has-success');
-                        cloudNameHelpIcon.addClass('glyphicon-ok');
-                        isAvailable = true;
-                    } else if (success === 0) { // unavailable
-                        messageSpan.html(msg.unavailable);
-                        cloudNameGroup.addClass('has-warning');
-                        cloudNameHelpIcon.addClass('glyphicon-warning-sign');
-                    } else { // formatting error
-                        cloudNameGroup.addClass('has-error');
-                        messageSpan.html(msg.formatting);
-                        cloudNameHelpIcon.addClass('glyphicon-remove');
-                    }
-                },
-
-                // user is typing
-                changed: function (elem) {
-                    isAvailable = false;
-                    cloudNameInput.addClass('btn-primary-loading');
-                    if (this.debug) {
-                        console.log('Changing cloud...');
-                    }
-                },
-
-                // indicates if the leading symbol should be removed prior to adding the name to the path
-                stripSymbol: true,
-
-                // indicates the location of the availability service
-                availabilityApi: /*[[${cspNameAvailabilityCheckUrl}]]*/ "https://registration-stage.respectnetwork.net/rn-checkavailability-service/api/availability/equals/",
-
-                // console output
-                debug: /*[[${cspDbgNameAvailability}]]*/ false
-            });
-
             $.validator.addMethod("isAvailable", function (value, element, param) {
-                return true;//isAvailable;
+                return isAvailable;
             });
 
             addFormValidation('#signUpForm', {
@@ -138,11 +65,88 @@
                         isAvailable: true
                     }
                 },
-                errorPlacement: function(error, element) {
-                    // nothing - using custom error msgs
+                errorPlacement: function(label, element) {
+                    if (element.attr('id') == 'error') {
+                        label.insertAfter(element);
+                    }
                 }
             }, /*[[${errors}]]*/ null
             );
+
+            var cloudNameGroup = $('#cloudNameGroup');
+            var cloudNameHelpIcon = $('#cloudNameHelpIcon');
+
+            // the value of this var is the id of the input element that the user is typing into
+            var cloudNameField = "#cloudName";
+            var cloudNameInput = $(cloudNameField);
+
+            // the value of this var is the id of the display element that will be used to convey information to the user
+            var messageSpan = $(cloudNameField + 'Help');
+
+            var isAvailable = false;
+
+            cloudNameInput.checkCloudName({
+
+                completed: function (cloudCheckResult) {
+
+                    // no longer loading
+                    cloudNameInput.removeClass('btn-primary-loading');
+
+                    // reset view state
+                    cloudNameGroup.removeClass('has-success has-warning has-error');
+                    cloudNameHelpIcon.removeClass('glyphicon-ok glyphicon-remove glyphicon-warning-sign');
+
+                    // assume unavailable
+                    isAvailable = false;
+
+                    if (this.debug) {
+                        console.log('completed :: cloudCheckResult=' + cloudCheckResult);
+                    }
+
+                    switch (cloudCheckResult) {
+                        default:
+                        case CloudCheckResult.CLEAR:
+                            messageSpan.html('');
+                            cloudNameHelpIcon.addClass('hidden');
+                            break;
+
+                        case CloudCheckResult.ERROR:
+                            cloudNameGroup.addClass('has-error');
+                            messageSpan.html(msg.error);
+                            cloudNameHelpIcon.removeClass('hidden').addClass('glyphicon-remove');
+                            break;
+
+                        case CloudCheckResult.INVALID:
+                            cloudNameGroup.addClass('has-error');
+                            messageSpan.html(msg.invalid);
+                            cloudNameHelpIcon.removeClass('hidden').addClass('glyphicon-remove');
+                            break;
+
+                        case CloudCheckResult.AVAILABLE:
+                            isAvailable = true;
+                            messageSpan.html(msg.available);
+                            cloudNameGroup.addClass('has-success');
+                            cloudNameHelpIcon.removeClass('hidden').addClass('glyphicon-ok');
+                            break;
+
+                        case CloudCheckResult.UNAVAILABLE:
+                            messageSpan.html(msg.unavailable);
+                            cloudNameGroup.addClass('has-warning');
+                            cloudNameHelpIcon.removeClass('hidden').addClass('glyphicon-warning-sign');
+                            break;
+                    }
+                },
+
+                changed: function (newCloudName) {
+                    isAvailable = false;
+                    cloudNameInput.addClass('btn-primary-loading');
+                    if (this.debug) {
+                        console.log('changed :: newCloudName=' + newCloudName);
+                    }
+                },
+
+                debug: /*[[${cspDbgNameAvailability}]]*/ false
+            });
         });
         /*]]>*/
     </script>
