@@ -62,7 +62,7 @@ public class PasswordManager {
         CloudName cloudName = CloudName.create(clName);
         CloudNumber cloudNumber;
         try {
-            cloudNumber = cspRegistrar.checkCloudNameAvailableInRN(cloudName);
+            cloudNumber = cspRegistrar.checkCloudNameInRN(cloudName);
             if (cloudNumber != null) {
                 cspRegistrar.authenticateInCloud(cloudNumber, currentPassword);
 
@@ -121,9 +121,14 @@ public class PasswordManager {
             String emailAddress, String phoneNumber)
             throws PasswordValidationException {
         CloudNumber cloudNumber;
+        if (!RegistrationManager.validateCloudName(cloudName)) {
+            throw new PasswordValidationException(
+                    CSPErrorsEnum.VE_INVALID_CLOUD_NAME_FORMAT.code(),
+                    CSPErrorsEnum.VE_INVALID_CLOUD_NAME_FORMAT.message());
+        }
         CloudName clName = CloudName.create(cloudName);
         try {
-            cloudNumber = cspRegistrar.checkCloudNameAvailableInRN(clName);
+            cloudNumber = cspRegistrar.checkCloudNameInRN(clName);
             logger.debug("Cloud name {} is associated with cloud number {}",
                     cloudName, cloudNumber);
             if (cloudNumber == null) {
@@ -191,20 +196,13 @@ public class PasswordManager {
             throws PasswordValidationException {
 
         logger.info("reset user password for cloud name: " + clName);
-
         CloudNumber cloudNumber;
-
-        if (!RegistrationManager.validateCloudName(clName)) {
-            throw new PasswordValidationException(
-                    CSPErrorsEnum.VE_INVALID_CLOUD_NAME_FORMAT.code(),
-                    CSPErrorsEnum.VE_INVALID_CLOUD_NAME_FORMAT.message());
-        }
         CloudName cloudName = CloudName.create(clName);
         logger.info("going to change password for cloud name: " + clName);
         // update the new password for CSP user
         validatePasswordFormat(newPassword);
         try {
-            cloudNumber = cspRegistrar.checkCloudNameAvailableInRN(cloudName);
+            cloudNumber = cspRegistrar.checkCloudNameInRN(cloudName);
             if (cloudNumber == null) {
                 logger.error("Cloud name does not exist : " + cloudName);
                 throw new PasswordValidationException(
