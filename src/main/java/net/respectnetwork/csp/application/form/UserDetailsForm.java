@@ -1,27 +1,20 @@
 package net.respectnetwork.csp.application.form;
 
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-
+import com.google.common.base.Objects;
 
 public class UserDetailsForm {
-    
+
     /** eMail */
     private String email;
-    
+
+    /** Country Code */
+    private String cc;
+
     /** Phone */
     private String mobilePhone;
-    
-    /** RN Terms and Conditions */
-    private boolean rnTandC;
-    
-    /** Password */
-    private String password; 
-    
-    /** Cloudname */
-    private String cloudName;   
 
-    private String cc;
+    /** Password */
+    private String password;
 
     /** Confirm Password */
     private String confirmPassword;
@@ -32,39 +25,48 @@ public class UserDetailsForm {
     public String getEmail() {
         return email;
     }
+
     /**
      * @param email the email to set
      */
     public void setEmail(String email) {
         this.email = email;
     }
+
     /**
-     * @return the mobilePhone
+     * @return the country code
+     */
+    public String getCc() {
+        return cc;
+    }
+
+    /**
+     * @param cc the country code to set
+     */
+    public void setCc(String cc) {
+        if (cc != null) {
+            cc = cc.replace(" ", ""); // remove any formatting spaces
+        }
+        this.cc = cc;
+    }
+
+    /**
+     * @return the regional mobile number
      */
     public String getMobilePhone() {
         return mobilePhone;
     }
-    /**
-     * @param mobilePhone the mobilePhone to set
-     */
-    public void setMobilePhone(String mobilePhone) {
-        this.mobilePhone = mobilePhone;
-    }
-    
-    /**
-     * @return the rnTandC
-     */
-    public boolean isRnTandC() {
-        return rnTandC;
-    }
 
     /**
-     * @param rnTandC the rnTandC to set
+     * @param mobilePhone the region mobile phone to set
      */
-    public void setRnTandC(boolean rnTandC) {
-        this.rnTandC = rnTandC;
+    public void setMobilePhone(String mobilePhone) {
+        if (mobilePhone != null) {
+            mobilePhone = mobilePhone.replace(" ", ""); // remove any formatting spaces
+        }
+        this.mobilePhone = mobilePhone;
     }
-    
+
     /**
      * @return the password
      */
@@ -79,81 +81,58 @@ public class UserDetailsForm {
         this.password = password;
     }
 
-    
-    
-    
+    /**
+     * @return the international format phone
+     */
+    public String getPhone() {
+        return cc + "." + mobilePhone;
+    }
+
+    /**
+     * @return the confirm password
+     */
+    public String getConfirmPassword() {
+        return confirmPassword;
+    }
+
+    /**
+     * @param confirmPassword the confirm password to set
+     */
+    public void setConfirmPassword(String confirmPassword) {
+        this.confirmPassword = confirmPassword;
+    }
+
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("MessageForm [email=").append(email)
-                .append(", mobilePhone=").append(mobilePhone)
-                .append(", rnTandC=").append(rnTandC)
-                //.append(", password=").append(password)
-                .append(", cloudName=").append(cloudName)
-                .append("]");
-        return builder.toString();
-    }
-    
-    /**
-     * Hash Implementation using apache-lang
-     */
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-        .append(email)
-        .append(mobilePhone)
-        .append(rnTandC)
-        .append(password)
-        .toHashCode();
+        return Objects.toStringHelper(this)
+                .add("email", email)
+                .add("cc", cc)
+                .add("mobilePhone", mobilePhone)
+//                .add("password", password)
+//                .add("confirmPassword", confirmPassword)
+                .toString();
     }
 
-
-    /**
-     * Equals Implementation using apache-lang
-     */
     @Override
-    public boolean equals(Object obj) {
-        if(obj instanceof UserDetailsForm){
-            final UserDetailsForm other = (UserDetailsForm) obj;
-            return new EqualsBuilder()
-                .append(email, other.email)
-                .append(mobilePhone, other.mobilePhone)
-                .append(rnTandC, other.rnTandC)
-                .append(password, other.password)
-                .append(cloudName, other.cloudName)
-                .isEquals();
-        } else{
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-    }
-   public String getCloudName()
-   {
-      return cloudName;
-   }
-   public void setCloudName(String cloudName)
-   {
-      this.cloudName = cloudName;
-   }
-   public String getCc()
-   {
-      return cc;
-   }
-   public void setCc(String cc)
-   {
-      this.cc = cc;
-   }
 
-    public String getPhone()
-    {
-       return cc + "." +  mobilePhone;
+        UserDetailsForm that = (UserDetailsForm) o;
+
+        return Objects.equal(this.email, that.email) &&
+                Objects.equal(this.cc, that.cc) &&
+                Objects.equal(this.mobilePhone, that.mobilePhone) &&
+                Objects.equal(this.password, that.password) &&
+                Objects.equal(this.confirmPassword, that.confirmPassword);
     }
-   public String getConfirmPassword()
-   {
-      return confirmPassword;
-   }
-   public void setConfirmPassword(String confirmPassword)
-   {
-      this.confirmPassword = confirmPassword;
-   }
-    
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(email, cc, mobilePhone, password, confirmPassword);
+    }
 }

@@ -1,25 +1,25 @@
 package net.respectnetwork.csp.application.form;
 
-
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-
+import com.google.common.base.Objects;
 
 /**
- * Class for Data used in Confirmation and Payments Form 
- *
+ * Class for Data used in Confirmation and Payments Form
  */
 public class ValidateForm {
-	
+
     /** Email Code */
     private String emailCode;
 
     /** SMS Code */
     private String smsCode;
 
- 
-    
-	/**
+    /** Terms */
+    private String terms;
+
+    /** Reset password */
+    private boolean resetPwd;
+
+    /**
      * @return the emailCode
      */
     public String getEmailCode() {
@@ -47,45 +47,51 @@ public class ValidateForm {
         this.smsCode = smsCode;
     }
 
-  
+    public boolean isTermsChecked() {
+        return "on".equalsIgnoreCase(terms);
+    }
 
-    /**
-     * To String Implementation.
-     */
+    public void setTerms(String terms) {
+        this.terms = terms;
+    }
+
+    public boolean isResetPwd() {
+        return resetPwd;
+    }
+
+    public void setResetPwd(boolean resetPwd) {
+        this.resetPwd = resetPwd;
+    }
+
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("[emailCode=").append(emailCode)
-            .append(", smsCode=").append(smsCode)
-            .append("]");
-        return builder.toString();
+        return Objects.toStringHelper(this)
+                .add("emailCode", emailCode)
+                .add("smsCode", smsCode)
+                .add("terms", terms)
+                .add("resetPwd", resetPwd)
+                .toString();
     }
-    
-    /**
-     * HashCode Implementation using apache-lang
-     */
+
     @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-        .append(emailCode)
-        .append(smsCode)
-        .toHashCode();
-    }
-    
-    /**
-     * Equals Implementation using apache-lang
-     */
-    @Override
-    public boolean equals(Object obj) {
-        if(obj instanceof ValidateForm){
-            final ValidateForm other = (ValidateForm) obj;
-            return new EqualsBuilder()
-                .append(emailCode, other.emailCode)
-                .append(smsCode, other.smsCode)
-                .isEquals();
-        } else{
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
+
+        ValidateForm that = (ValidateForm) o;
+
+        return Objects.equal(this.emailCode, that.emailCode) &&
+                Objects.equal(this.smsCode, that.smsCode) &&
+                Objects.equal(this.terms, that.terms) &&
+                Objects.equal(this.resetPwd, that.resetPwd);
     }
-	
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(emailCode, smsCode, terms, resetPwd);
+    }
 }
