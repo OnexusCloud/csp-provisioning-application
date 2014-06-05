@@ -62,7 +62,7 @@ public class PasswordManager {
         CloudName cloudName = CloudName.create(clName);
         CloudNumber cloudNumber;
         try {
-            cloudNumber = cspRegistrar.checkCloudNameAvailableInRN(cloudName);
+            cloudNumber = cspRegistrar.checkCloudNameInRN(cloudName);
             if (cloudNumber != null) {
                 cspRegistrar.authenticateInCloud(cloudNumber, currentPassword);
 
@@ -123,7 +123,7 @@ public class PasswordManager {
         CloudNumber cloudNumber;
         CloudName clName = CloudName.create(cloudName);
         try {
-            cloudNumber = cspRegistrar.checkCloudNameAvailableInRN(clName);
+            cloudNumber = cspRegistrar.checkCloudNameInRN(clName);
             logger.debug("Cloud name {} is associated with cloud number {}",
                     cloudName, cloudNumber);
             if (cloudNumber == null) {
@@ -204,7 +204,7 @@ public class PasswordManager {
         // update the new password for CSP user
         validatePasswordFormat(newPassword);
         try {
-            cloudNumber = cspRegistrar.checkCloudNameAvailableInRN(cloudName);
+            cloudNumber = cspRegistrar.checkCloudNameInRN(cloudName);
             if (cloudNumber == null) {
                 logger.error("Cloud name does not exist : " + cloudName);
                 throw new PasswordValidationException(
