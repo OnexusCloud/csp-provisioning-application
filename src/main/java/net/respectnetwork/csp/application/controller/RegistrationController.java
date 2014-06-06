@@ -237,7 +237,7 @@ public class RegistrationController
         // Response
         ModelAndView mv;
         if (errors.isEmpty()) {
-            mv = new ModelAndView("userDetails");
+            mv = new ModelAndView("userdetails");
             mv.addObject("userInfo", new UserDetailsForm());
 
             regSession.setSessionId(UUID.randomUUID().toString());
@@ -298,7 +298,7 @@ public class RegistrationController
             logger.debug("Invalid sessionId or cloudName :: sessionId={}, cloudName={}", sessionId, cloudName);
             errors.add("error", "form.invalidSession");
 
-            ModelAndView mv = new ModelAndView("userDetails");
+            ModelAndView mv = new ModelAndView("userdetails");
             mv.addObject("userInfo", userDetailsForm);
             mv.addObject("cloudName", cloudName);
             return  errors.withModelView(mv);
@@ -372,7 +372,7 @@ public class RegistrationController
             regSession.setVerifiedMobilePhone(phone);
             regSession.setPassword(password);
         } else {
-            mv = new ModelAndView("userDetails");
+            mv = new ModelAndView("userdetails");
             mv.addObject("userInfo", userDetailsForm);
         }
 
