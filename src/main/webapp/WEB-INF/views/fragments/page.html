@@ -25,7 +25,7 @@
     <link rel="apple-touch-icon-precomposed" href="img/ico/apple-touch-icon-57-precomposed.png"/>
     <link rel="shortcut icon" href="img/ico/favicon.png"/>
 </head>
-
+                      `
 <body>
 
 <!-- Fixed navbar -->
@@ -54,10 +54,10 @@
     </div>
 </div>
 
-<script th:src="@{'https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery' + (${cspUseMinifiedJs} ? '.min' : '') + '.js'}"
+<script th:src="@{'//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery' + (${cspUseMinifiedJs} ? '.min' : '') + '.js'}"
         src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-<script th:src="@{'http://ajax.aspnetcdn.com/ajax/jquery.validate/1.12.0/jquery.validate' + (${cspUseMinifiedJs} ? '.min' : '') + '.js'}"
-        src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.12.0/jquery.validate.min.js"></script>
+<script th:src="@{'//ajax.aspnetcdn.com/ajax/jquery.validate/1.12.0/jquery.validate' + (${cspUseMinifiedJs} ? '.min' : '') + '.js'}"
+        src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.12.0/jquery.validate.min.js"></script>
 <script th:src="@{'js/libs/bootstrap-3.1.1' + (${cspUseMinifiedJs} ? '.min' : '') + '.js'}"
         src="js/libs/bootstrap-3.1.1.js"></script>
 <script src="js/libs/modernizr-2.0.6.min.js"></script>
