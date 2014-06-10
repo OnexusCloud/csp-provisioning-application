@@ -9,6 +9,7 @@ import net.respectnetwork.csp.application.exception.CSPProValidationException;
 import net.respectnetwork.csp.application.exception.UserRegistrationException;
 import net.respectnetwork.csp.application.form.DependentForm;
 import net.respectnetwork.csp.application.form.InviteForm;
+import net.respectnetwork.csp.application.form.LoginForm;
 import net.respectnetwork.csp.application.form.PaymentForm;
 import net.respectnetwork.csp.application.form.SignUpForm;
 import net.respectnetwork.csp.application.invite.InvitationManager;
@@ -29,6 +30,7 @@ import net.respectnetwork.csp.application.model.SignupInfoModel;
 import net.respectnetwork.csp.application.session.RegistrationSession;
 import net.respectnetwork.csp.application.types.PaymentType;
 import net.respectnetwork.csp.application.util.ResponseBuilder;
+import net.respectnetwork.sdk.csp.CSP;
 import net.respectnetwork.sdk.csp.exception.CSPRegistrationException;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -186,147 +188,118 @@ public class PersonalCloudController
       return mv;
    }
 
-   @RequestMapping(value = "/cloudPage", method =
-   { RequestMethod.POST, RequestMethod.GET })
-   public ModelAndView showCloudPage(HttpServletRequest request, Model model)
-   {
-      logger.info("showing cloudPage form");
-      String errorText = "";
-      ModelAndView mv = null;
-      CloudName cloudName = null;
-      boolean errors = false;
-      logger.info("Cloudname from request parameter "
-            + request.getParameter("cloudname"));
-      String cName = request.getParameter("cloudname");
-      if (cName == null)
-      {
-         cName = regSession.getCloudName();
-         if(cName == null) {
-            return processLogout(request, model);
-         }
-      }
+    @RequestMapping(value = "/cloudPage", method = { RequestMethod.POST, RequestMethod.GET })
+    public ModelAndView showCloudPage(@ModelAttribute("loginInfo") LoginForm loginForm,
+                                      HttpServletRequest request) {
+        logger.info("showing cloudPage form");
 
-      if (!cName.startsWith("="))
-      {
-         cName = "=" + cName;
-      }
-      
-      if(cName != null && regSession.getCloudName() != null && !cName.equalsIgnoreCase(regSession.getCloudName()))
-      {
-         return processLogout(request, model);
-      }
-		
-	  if(!RegistrationManager.validateCloudName(cName) ) {
-          errors = true;
-          errorText = RegistrationManager.validINameFormat;
-      }
+        ResponseBuilder resp = new ResponseBuilder(messageSource, request)
+                .setView("login")
+                .addObject("loginInfo", new LoginForm(loginForm));
 
-      if(errors == false) {
-         cloudName = CloudName.create(cName);
-      logger.info("Logging in for cloudname " + cloudName.toString());
-      net.respectnetwork.sdk.csp.CSP myCSP = registrationManager
-            .getCspRegistrar();
-      if (myCSP == null)
-      {
-         logger.info("myCSP is null!");
-      }
-      if (myCSP != null)
-      {
-         logger.info("CSP Info:" + myCSP.toString());
-         CloudNumber cloudNumber;
-         try
-         {
-            cloudNumber = myCSP.checkCloudNameInRN(cloudName);
-            String secretToken = null;
-            if (regSession != null)
-            {
-               secretToken = regSession.getPassword();
+        // Require cloud name
+        String cloudNameVal = loginForm.getCloudName();
+        if (isNullOrEmpty(cloudNameVal)) {
+            cloudNameVal = (regSession != null) ? regSession.getCloudName() : null;
+        }
+        if (isNullOrEmpty(cloudNameVal)) {
+            resp.addError("cloudName", "login.msg.cloudName.required");
+        }
+
+        // Require password
+        String passwordVal = null;
+        if (regSession != null) {
+            passwordVal = regSession.getPassword();
+        }
+        if (isNullOrEmpty(passwordVal)) {
+            passwordVal =  loginForm.getPassword();
+        }
+        if (isNullOrEmpty(passwordVal)) {
+            resp.addError("password", "login.msg.password.required");
+        }
+
+        // Show required errors
+        if (resp.hasErrors()) {
+            processLogout(request);
+            return resp.build();
+        }
+
+        // Validate cloud name
+        //noinspection ConstantConditions
+        if (!cloudNameVal.startsWith("=")) {
+            cloudNameVal = "=" + cloudNameVal;
+        }
+        if (regSession.getCloudName() != null && !cloudNameVal.equalsIgnoreCase(regSession.getCloudName())) {
+            resp.addError("cloudName", "login.msg.cloudName.required");
+            resp.addObject("loginInfo", new LoginForm(loginForm.getRedirect())); // remove non-matching cloud name
+        } else  if(!RegistrationManager.validateCloudName(cloudNameVal) ) {
+            resp.addError("cloudName", "signUp.msg.invalid");
+        }
+        if (resp.hasErrors()) {
+            processLogout(request);
+            return resp.build();
+        }
+
+        // Get CSP registrar
+        CSP cspRegistrar = registrationManager.getCspRegistrar();
+        if (cspRegistrar == null) { // can this actually happen??
+            logger.error("cspRegistrar is null!");
+            return resp.addGeneralError("error.unknown").build();
+        }
+
+        // Process login
+        CloudName cloudName = CloudName.create(cloudNameVal);
+        logger.debug("Logging in for cloudName={}, cspRegistrar={}", cloudName, cspRegistrar);
+
+        CloudNumber cloudNumber = null;
+        try {
+            cloudNumber = cspRegistrar.checkCloudNameInRN(cloudName);
+            if (cloudNumber != null) {
+                cspRegistrar.authenticateInCloud(cloudNumber, passwordVal);
+
+                if (regSession != null && isNullOrEmpty(regSession.getCloudName())) {
+
+                    if (isNullOrEmpty(regSession.getSessionId())) {
+                        String sessionId = UUID.randomUUID().toString();
+                        logger.debug("Creating a new regSession :: sessionId={}", sessionId);
+                        regSession.setSessionId(sessionId);
+                    }
+
+                    logger.debug("Updating regSession :: cloudName={}", cloudNameVal);
+                    regSession.setCloudName(cloudNameVal);
+                    regSession.setPassword(passwordVal);
+
+                    // Retrieve verified phone and email
+                    SignupInfoDAO signupInfoDAO = DAOFactory.getInstance().getSignupInfoDAO();
+                    try {
+                        SignupInfoModel signupInfo = signupInfoDAO.get(regSession.getCloudName());
+                        if (signupInfo != null) {
+                            regSession.setVerifiedEmail(signupInfo.getEmail());
+                            regSession.setVerifiedMobilePhone(signupInfo.getPhone());
+                        }
+                    } catch (DAOException e) {
+                        // todo should this fail the login process??
+                        logger.error("Error getting signupInfo", e);
+                    }
+                }
             }
-            if (secretToken == null || secretToken.isEmpty())
-            {
-               secretToken = request.getParameter("secrettoken");
+        } catch (Exception e) {
+            logger.debug("Failed to process login :: cloudNumber={}, loginForm={}", cloudNumber, loginForm, e);
+            cloudNumber = null;
+        }
+
+        // Response
+        if (cloudNumber == null) {
+            logger.debug("Authenticating to personal cloud failed :: loginForm={}", loginForm);
+            return resp.addGeneralError("login.msg.invalid").build();
+        } else {
+            logger.info("Successfully authenticated to the personal cloud :: loginForm={}", loginForm);
+            if (loginForm.hasRedirect()) {
+                return new ModelAndView("redirect:" + loginForm.getRedirect());
+            } else {
+                return getCloudPage(request, regSession.getCloudName());
             }
-            if (cloudNumber != null)
-            {
-
-               myCSP.authenticateInCloud(cloudNumber, secretToken);
-               if (regSession != null && regSession.getCloudName() == null)
-               {
-
-                  if (regSession.getSessionId() == null
-                        || regSession.getSessionId().isEmpty())
-                  {
-                     String sessionId = UUID.randomUUID().toString();
-                     regSession.setSessionId(sessionId);
-                     logger.info("Creating a new regSession with session id ="
-                           + sessionId);
-                  }
-                  logger.info("Setting cloudname as  " + cloudName);
-                  if (request.getParameter("cloudname") != null)
-                  {
-                     regSession.setCloudName(cName);
-                  }
-                  // logger.info("Setting secret token as  " +
-                  // request.getParameter("secrettoken"));
-                  if (request.getParameter("secrettoken") != null)
-                  {
-                     regSession
-                           .setPassword(request.getParameter("secrettoken"));
-                  }
-
-                  // Retrieve verified phone and email
-                  SignupInfoDAO signupInfoDAO = DAOFactory.getInstance().getSignupInfoDAO();
-                  try
-                  {
-                     SignupInfoModel signupInfo = signupInfoDAO.get(regSession.getCloudName());
-                     if (signupInfo != null)
-                     {
-                        regSession.setVerifiedEmail(signupInfo.getEmail());
-                        regSession.setVerifiedMobilePhone(signupInfo.getPhone());
-                     }
-                  } catch (DAOException e)
-                  {
-                     logger.error("Error getting signupInfo: " + e.getMessage());
-                  }
-               }
-               mv = getCloudPage(request, regSession.getCloudName());
-               logger.info("Successfully authenticated to the personal cloud for "
-                     + cloudName);
-
-            } else
-            {
-			   errorText += "Invalid User/Password.";
-               errors = true;
-			   logger.info("Authenticating to personal cloud failed for "
-                       + cloudName);
-            }
-         } catch (Xdi2ClientException e)
-         {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            errors = true;
-			errorText += "Invalid User/Password.";
-            logger.debug("Authenticating to personal cloud failed for "
-                  + cloudName);
-         }
-
-      } else
-      {
-         logger.info("CSP Object is null. ");
-         errors = true;
-      }
-	  }
-      if (errors)
-      {
-         String cspHomeURL = request.getContextPath();
-         String formPostURL = cspHomeURL + "/cloudPage";
-         mv = new ModelAndView("login");
-		 mv.addObject("error", errorText);
-         mv.addObject("postURL", formPostURL);
-
-      }
-
-      return mv;
+        }
    }
 
    public RegistrationManager getRegistrationManager()
@@ -353,7 +326,7 @@ public class PersonalCloudController
 
    @RequestMapping(value = "/logout", method =
    { RequestMethod.GET, RequestMethod.POST })
-   public ModelAndView processLogout(HttpServletRequest request, Model model)
+   public ModelAndView processLogout(HttpServletRequest request)
    {
       logger.info("processing logout");
 

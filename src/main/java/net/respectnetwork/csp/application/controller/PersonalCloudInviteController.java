@@ -1,18 +1,5 @@
 package net.respectnetwork.csp.application.controller;
 
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
-
 import net.respectnetwork.csp.application.csp.CurrencyCost;
 import net.respectnetwork.csp.application.dao.DAOContextProvider;
 import net.respectnetwork.csp.application.dao.DAOException;
@@ -24,14 +11,11 @@ import net.respectnetwork.csp.application.manager.BrainTreePaymentProcessor;
 import net.respectnetwork.csp.application.manager.PinNetAuPaymentProcessor;
 import net.respectnetwork.csp.application.manager.RegistrationManager;
 import net.respectnetwork.csp.application.manager.StripePaymentProcessor;
-import net.respectnetwork.csp.application.model.CSPCostOverrideModel;
 import net.respectnetwork.csp.application.model.CSPModel;
 import net.respectnetwork.csp.application.model.GiftCodeModel;
 import net.respectnetwork.csp.application.model.InviteModel;
 import net.respectnetwork.csp.application.model.PaymentModel;
 import net.respectnetwork.csp.application.session.RegistrationSession;
-import net.respectnetwork.sdk.csp.notification.BasicNotificationService;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +27,20 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.ModelAndView;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 @Controller
 public class PersonalCloudInviteController
@@ -120,10 +118,28 @@ public class PersonalCloudInviteController
 		return rtn;
 	}
 
-	@RequestMapping(value = "/invite", method = RequestMethod.GET)
-	public ModelAndView showInviteForm(HttpServletRequest request, Model model) throws DAOException
-	{
-	   String rnQueryString = "";
+    @RequestMapping(value = "/invite", method = RequestMethod.GET)
+    public ModelAndView showInviteForm(HttpServletRequest request, Model model) throws DAOException {
+        String cloudName = request.getParameter(RegistrationController.URL_PARAM_NAME_REQ_CLOUDNAME);
+
+        // Check login
+        if (isNullOrEmpty(cloudName) || regSession == null || !cloudName.equalsIgnoreCase(regSession.getCloudName())) {
+            logger.debug("showing invite page -> requires login :: cloudName={}", cloudName);
+            ModelAndView mv = new ModelAndView("redirect:/login");
+            mv.addObject("postURL", "/cloudPage");
+            mv.addObject("redirect", "/invite");
+            return mv;
+        }
+
+        CSPModel cspModel = DAOFactory.getInstance().getCSPDAO().get(getCspCloudName());
+        logger.debug("showing invite page :: cloudName={}, cspCloudName={}", cloudName, cspModel.getCspCloudName());
+
+        ModelAndView mv = new ModelAndView("invite");
+        mv.addObject("cspModel", cspModel);
+        mv.addObject("quantityList", quantityList);
+        mv.addObject("cloudName", cloudName);
+
+        String rnQueryString = "";
       
       Enumeration<String> paramNames = request.getParameterNames(); 
       while(paramNames.hasMoreElements())
@@ -148,29 +164,6 @@ public class PersonalCloudInviteController
             }
          }
       }
-      String cloudName = request.getParameter(RegistrationController.URL_PARAM_NAME_REQ_CLOUDNAME); // this.getCloudName();
-
-		logger.info("showing invite page - " + cloudName );
-
-		String       cspHomeURL = request.getContextPath();
-		ModelAndView mv         = null;
-		InviteForm   inviteForm = null;
-		CSPModel     cspModel   = null;
-
-		if( cloudName == null || cloudName.isEmpty() || regSession== null || !cloudName.equalsIgnoreCase(regSession.getCloudName()))
-		{
-			mv = new ModelAndView("login");
-			mv.addObject("postURL", cspHomeURL + "/cloudPage");
-			return mv;
-		}
-
-		cspModel = DAOFactory.getInstance().getCSPDAO().get(this.getCspCloudName());
-		logger.debug("showInviteForm :: CSP Cloud Name " + cspModel.getCspCloudName() );
-
-		mv = new ModelAndView("invite");
-		mv.addObject("cspModel"    , cspModel);
-		mv.addObject("quantityList", quantityList);
-		mv.addObject("cloudName", cloudName);
 
       // Format cost per cloud (include override if applicable)
       CurrencyCost costPerCloudName = RegistrationController.getCostIncludingOverride(cspModel, regSession.getVerifiedMobilePhone(), 1);
@@ -179,7 +172,7 @@ public class PersonalCloudInviteController
 
       mv.addObject("costPerCloudNameText", RegistrationController.formatCurrencyAmount(costPerCloudName));
 
-      inviteForm = new InviteForm();
+      InviteForm inviteForm = new InviteForm();
       model.addAttribute("inviteForm", inviteForm);
       if (regSession != null)
       {
