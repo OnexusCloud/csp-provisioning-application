@@ -65,7 +65,7 @@ function addFormValidation(formSelector, validation, errorsEncoded) {
 
         getElements: function (element) {
             if (element.type === 'radio') {
-                return this.findByName(element.name);
+                return validator.findByName(element.name);
             } else {
                 return $(element);
             }
