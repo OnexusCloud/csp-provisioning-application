@@ -435,7 +435,7 @@ public class RegistrationController
         // Validate terms
         if(!validateForm.isTermsChecked()) {
             logger.debug("Respect Trust Framework not checked");
-            errors.add("terms", "validateCodes.msg.terms.required");
+            errors.add("terms", "form.msg.terms.required");
         }
 
         // Response
@@ -472,6 +472,7 @@ public class RegistrationController
 
                     // Cost override
                     CurrencyCost totalCost = getCostIncludingOverride(cspModel, regSession.getVerifiedMobilePhone(), paymentForm.getNumberOfClouds());
+                    paymentForm.setTotalAmountText(formatCurrencyAmount(totalCost));
 
                     // Update session
                     regSession.setCurrency(totalCost.getCurrencyCode());
@@ -480,7 +481,6 @@ public class RegistrationController
 
                     mv = new ModelAndView("payment");
                     mv.addObject("paymentInfo", paymentForm);
-                    mv.addObject("totalAmountText", formatCurrencyAmount(totalCost));
                 }
             }
         }

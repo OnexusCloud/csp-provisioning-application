@@ -1,8 +1,7 @@
 package net.respectnetwork.csp.application.form;
 
 
-import java.math.BigDecimal;
-
+import net.respectnetwork.csp.application.csp.CurrencyCost;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 
@@ -41,6 +40,8 @@ public class PaymentForm {
     int numberOfClouds;
     
     boolean giftCodesOnly;
+
+    String totalAmountText;
     
     public PaymentForm()
     {
@@ -62,6 +63,7 @@ public class PaymentForm {
       this.customerName = paymentFormIn.customerName;
       this.numberOfClouds = paymentFormIn.numberOfClouds;
       this.giftCodesOnly = paymentFormIn.giftCodesOnly;
+      this.totalAmountText = paymentFormIn.totalAmountText;
    }
 
    /**
@@ -179,5 +181,11 @@ public class PaymentForm {
       this.giftCodesOnly = giftCodesOnly;
    }
 
-	
+    public String getTotalAmountText() {
+        return totalAmountText;
+    }
+
+    public void setTotalAmountText(String totalAmountText) {
+        this.totalAmountText = totalAmountText;
+    }
 }

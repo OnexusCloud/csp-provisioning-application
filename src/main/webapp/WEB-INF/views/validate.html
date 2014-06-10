@@ -53,7 +53,7 @@
         <div class="form-group">
             <label class="secondary">
                 <input type="checkbox" id="terms" name="terms"/>
-                <th:block th:utext="#{validateCodes.terms(${cspTermsUrl})}">
+                <th:block th:utext="#{form.terms(${cspTermsUrl})}">
                 I agree to the
                 <a target="_blank" onclick="return windowpop(this.href, 545, 433);"
                    href="http://openidentityexchange.org/trust-frameworks/respect-trust-framework">
@@ -88,7 +88,7 @@
             var msg = {
                 emailCodeRequired: /*[[#{validateCodes.msg.emailCode.required}]]*/ 'Please enter the email code',
                 smsCodeRequired: /*[[#{validateCodes.msg.smsCode.required}]]*/ 'Please enter the sms code',
-                termsRequired: /*[[#{validateCodes.msg.terms.required}]]*/ 'Please agree to the terms and conditions'
+                termsRequired: /*[[#{form.msg.terms.required}]]*/ 'Please agree to the Respect Trust Framework to continue'
             };
 
             addFormValidation('#validateCodesForm', {

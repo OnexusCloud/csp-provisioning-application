@@ -15,14 +15,18 @@
 
         <div class="col-sm-5">
             <div class="page-header">
-                <h1>Select Payment Method</h1>
-                <span style="color:red" th:text="${error}"> </span>
+                <h1 th:utext="#{selectPayment.title}">Select Payment Method</h1>
             </div>
 
             <!--/* Don't show payment form if buying gift card and no credit card processor enabled */-->
             <form action="#" th:action="@{/makePayment}" method="post"
                   class="form-secondary" id="paymentForm"
                   th:unless="*{txnType == 'buyGiftCard' and giftCodesOnly}">
+
+                <!--/* Errors */-->
+                <div class="form-group" data-show-valid-glyph="false">
+                    <div id="error" name="error"></div>
+                </div>
 
                 <div class="form-control-feedback has-error" id="paymentTypeError"></div>
 
@@ -33,21 +37,20 @@
                             <input type="radio" name="paymentType" id="giftCodeRadio"
                                    value="giftCard" th:checked="*{giftCodesOnly}"/>
                         </span>
-                        <input type="text" id="giftCodes" name="giftCodes" placeholder="gift code"
+                        <input type="text" id="giftCodes" name="giftCodes" placeholder="gift codes" th:placeholder="#{selectPayment.giftCodes.placeHolder}"
                                class="form-control" th:value="*{giftCodes}"/>
                     </div>
-                    <p class="help-block" id="giftCodeHelp">Separate multiple gift codes by spaces</p>
+                    <p class="help-block" id="giftCodeHelp" th:utext="#{selectPayment.giftCodes.help}">Separate multiple gift codes by spaces</p>
                 </div>
 
                 <!--/* Credit card */-->
                 <div class="form-group" th:unless="*{giftCodesOnly}">
                     <div class="input-group">
                         <span class="input-group-addon">
-                            <input type="radio" name="paymentType" id="creditCardRadio"
-                                   value="creditCard"/>
+                            <input type="radio" name="paymentType" id="creditCardRadio" value="creditCard"/>
                         </span>
                         <label for="creditCardRadio">
-                            <img src="img/credit-card-front.png"/>Credit card
+                            <img src="img/credit-card-front.png"/><th:block th:utext="#{selectPayment.giftCodes.placeHolder}">Credit card</th:block>
                         </label>
                     </div>
                 </div>
@@ -58,7 +61,7 @@
                         <span class="input-group-addon">
                             <input type="checkbox" name="cspTandC" id="cspTandC" th:checked="*{cspTandC}"/>
                         </span>
-                        <label class="secondary">
+                        <label class="secondary" th:utext="#{form.terms(${cspTermsUrl})}">
                             I agree to the
                             <a target="_blank" onclick="return windowpop(this.href, 545, 433);"
                                href="http://openidentityexchange.org/trust-frameworks/respect-trust-framework" th:href="${cspTermsUrl}">
@@ -69,7 +72,7 @@
                     </label>
                 </div>
 
-                <button type="submit" name="submitBtn" id="submitBtn" class="button btn btn-lg btn-primary">Continue</button>
+                <button type="submit" name="submitBtn" id="submitBtn" class="button btn btn-lg btn-primary" th:utext="#{form.next}">Next</button>
 
                 <input type="hidden" name="numberOfClouds" value="" id="numberOfClouds" th:value="*{numberOfClouds}"/>
                 <input type="hidden" name="txnType" value="" id="txnType" th:value="*{txnType}"/>
@@ -88,10 +91,10 @@
         <!--/* Order summary */-->
         <div class="col-sm-4">
             <div class="page-header" id="orderSummary">
-                <h1>Order summary</h1>
+                <h1 th:utext="#{orderSummary.title}">Order summary</h1>
             </div>
 
-            <div class="equation">
+            <div class="equation" th:utext="#{orderSummary.body(${paymentInfo.totalAmountText})}">
                 <div class="addend">
                     Respect Network<br/>
                     LIFETIME membership
@@ -101,7 +104,7 @@
                     LIFETIME Base<br/>
                     Cloud hosting
                 </div>
-                <div class="equals" th:text="${totalAmountText}"> $xx USD</div>
+                <div class="equals">$xx USD</div>
             </div>
         </div>
 
@@ -109,13 +112,15 @@
 </div>
 
 <th:block layout:fragment="postFooterContent">
-    <script src="js/libs/intlTelInput.min.js"></script>
-    <script src="js/libs/data.js"></script>
     <script>
         /*<![CDATA[*/
-        $('#cc').intlTelInput();
-
         $(document).ready(function () {
+
+            var msg = {
+                paymentMethodRequired: /*[[#{selectPayment.msg.method.required}]]*/ 'Please select a payment method',
+                giftCodesRequired: /*[[#{selectPayment.msg.giftCodes.required}]]*/ 'Please enter one or more gift codes',
+                cspTermsRequired: /*[[#{form.msg.terms.required}]]*/ 'Please agree to the Respect Trust Framework to continue'
+            };
 
             // select gift codes payment type if we start entering gift codes
             var giftCodesRadio = $('#giftCodeRadio');
@@ -147,13 +152,13 @@
                 },
                 messages: {
                     paymentType: {
-                        required: 'Please select a payment method'
+                        required: msg.paymentMethodRequired
                     },
                     giftCodes: {
-                        required: 'Please enter one or more gift codes'
+                        required: msg.giftCodesRequired
                     },
                     cspTandC: {
-                        required: 'Please agree to the terms and conditions'
+                        required: msg.cspTermsRequired
                     }
                 },
                 ext: {
@@ -162,7 +167,8 @@
                         showValidGlyph: false
                     }
                 }
-            });
+            }, /*[[${errors}]]*/ null
+            );
         });
         /*]]>*/
     </script>
