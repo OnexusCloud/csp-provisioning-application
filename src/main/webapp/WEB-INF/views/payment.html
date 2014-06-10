@@ -130,12 +130,6 @@
 
             addFormValidation('#paymentForm', {
                 rules: {
-                    giftCodeRadio: {
-                        required: true
-                    },
-                    creditCardRadio: {
-                        required: true
-                    },
                     paymentType: {
                         required: true
                     },
@@ -159,6 +153,11 @@
                     },
                     terms: {
                         required: msg.cspTermsRequired
+                    }
+                },
+                ext: {
+                    paymentType: {
+                        showValidGlyph: false
                     }
                 }
             }, /*[[${errors}]]*/ null
