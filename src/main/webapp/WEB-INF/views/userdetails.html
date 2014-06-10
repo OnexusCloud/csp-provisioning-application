@@ -86,10 +86,10 @@
                 mobileMinLength: /*[[#{userDetails.msg.mobile.minLength}]]*/ 'Your number is too short',
                 mobileInvalid: /*[[#{userDetails.msg.mobile.invalid}]]*/ 'Your number should only contain numbers and spaces',
                 passwordRequired: /*[[#{userDetails.msg.password.required}]]*/ 'Please provide a password',
-                passwordMinLength: /*[[#{userDetails.msg.password.minLength}]]*/ 'Your password must be at least {0} characters',
-                passwordAlpha: /*[[#{userDetails.msg.password.alpha}]]*/ 'Password must contain at least {0} letters',
-                passwordNumeric: /*[[#{userDetails.msg.password.numeric}]]*/ 'Password must contain at least {0} numbers',
-                passwordSymbolic: /*[[#{userDetails.msg.password.symbolic}]]*/ 'Password must contain at least {0} symbols',
+                passwordMinLength: /*[[#{userDetails.msg.password.minLength(8)}]]*/ 'Your password must be at least {0} characters',
+                passwordAlpha: /*[[#{userDetails.msg.password.alpha(2)}]]*/ 'Password must contain at least {0} letters',
+                passwordNumeric: /*[[#{userDetails.msg.password.numeric(2)}]]*/ 'Password must contain at least {0} numbers',
+                passwordSymbolic: /*[[#{userDetails.msg.password.symbolic(1)}]]*/ 'Password must contain at least {0} symbols',
                 confirmPasswordRequired: /*[[#{userDetails.msg.confirmPassword.required}]]*/ 'Please repeat password',
                 confirmPasswordEqualTo: /*[[#{userDetails.msg.confirmPassword.equalTo}]]*/ 'Passwords do not match'
             };
@@ -159,9 +159,9 @@
                     password: {
                         required: true,
                         minlength: PASSWORD_MIN_LENGTH,
-                        checkPasswordAlpha: { count: PASSWORD_MIN_ALPHA, range: PASSWORD_ALPHA, toString: function () { return this.count; } },
-                        checkPasswordNumeric: { count: PASSWORD_MIN_NUMERIC, range: PASSWORD_NUMERIC, toString: function () { return this.count; } },
-                        checkPasswordSymbolic: { count: PASSWORD_MIN_SYMBOLIC, range: PASSWORD_SYMBOLS, toString: function () { return this.count; } }
+                        checkPasswordAlpha: { count: PASSWORD_MIN_ALPHA, range: PASSWORD_ALPHA },
+                        checkPasswordNumeric: { count: PASSWORD_MIN_NUMERIC, range: PASSWORD_NUMERIC },
+                        checkPasswordSymbolic: { count: PASSWORD_MIN_SYMBOLIC, range: PASSWORD_SYMBOLS }
                     },
                     confirmPassword: {
                         required: true,
