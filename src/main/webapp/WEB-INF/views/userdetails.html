@@ -175,12 +175,14 @@
                     },
                     cc: {
                         required: msg.ccRequired,
-                        validateCC: msg.ccInvalid
+                        validateCC: msg.ccInvalid,
+                        requireFromGroup: ''
                     },
                     mobilePhone: {
                         required: msg.mobileRequired,
                         minlength: msg.mobileMinLength,
-                        validatePhoneNumber: msg.mobileInvalid
+                        validatePhoneNumber: msg.mobileInvalid,
+                        requireFromGroup: ''
                     },
                     password: {
                         required: msg.passwordRequired,
