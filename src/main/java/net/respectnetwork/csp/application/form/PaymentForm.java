@@ -1,191 +1,135 @@
 package net.respectnetwork.csp.application.form;
 
-
-import net.respectnetwork.csp.application.csp.CurrencyCost;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-
+import com.google.common.base.Objects;
+import net.respectnetwork.csp.application.types.PaymentType;
 
 /**
- * Class for Data used in Confirmation and Payments Form 
- *
+ * Class for Data used in Confirmation and Payments Form
  */
 public class PaymentForm {
-	
-   public final static String GIFTCARD_PAYMENT = "giftCard";
-   public final static String CC_PAYMENT = "creditCard";
-   
-   public final static String TXN_TYPE_SIGNUP = "signup"; 
-   public final static String TXN_TYPE_BUY_GC = "buyGiftCard";
-   public final static String TXN_TYPE_DEP = "buyDependentCloud";
-   
 
-   private String giftCodes;
-   
-    /** CSP Terms and Conditions */
-    private boolean cspTandC;
+    public final static String TXN_TYPE_SIGNUP = "signup";
+    public final static String TXN_TYPE_BUY_GC = "buyGiftCard";
+    public final static String TXN_TYPE_DEP = "buyDependentCloud";
 
-    
-    /** customer email */    
-    String customerEmail ;
-    
-    /** customer name */
-    String customerName ;
-
-    
     /** signup or buyGiftCard or buyDependentCloud */
-    String txnType ;
-    
+    private String txnType;
+
     /** number of clouds being purchased */
-    int numberOfClouds;
-    
-    boolean giftCodesOnly;
+    private int numberOfClouds;
 
-    String totalAmountText;
-    
-    public PaymentForm()
-    {
-       this.giftCodes = "";
-       this.cspTandC = false;
-       this.txnType = null;
-       this.customerEmail = null;
-       this.customerName = null;
-       this.numberOfClouds = 0;
-       this.giftCodesOnly = false;
+    private String giftCodes;
+    private boolean giftCodesOnly;
+
+    private String terms;
+    private PaymentType paymentType;
+
+    public PaymentForm() {
+        this.giftCodes = "";
     }
 
-   public PaymentForm(PaymentForm paymentFormIn)
-   {
-      this.giftCodes = paymentFormIn.giftCodes;
-      this.cspTandC = paymentFormIn.cspTandC;
-      this.txnType = paymentFormIn.txnType;
-      this.customerEmail = paymentFormIn.customerEmail;
-      this.customerName = paymentFormIn.customerName;
-      this.numberOfClouds = paymentFormIn.numberOfClouds;
-      this.giftCodesOnly = paymentFormIn.giftCodesOnly;
-      this.totalAmountText = paymentFormIn.totalAmountText;
-   }
-
-   /**
-     * @return the cspTandC
-     */
-    public boolean isCspTandC() {
-        return cspTandC;
+    public PaymentForm(PaymentForm paymentFormIn) {
+        this.giftCodes = paymentFormIn.giftCodes;
+        this.txnType = paymentFormIn.txnType;
+        this.numberOfClouds = paymentFormIn.numberOfClouds;
+        this.giftCodesOnly = paymentFormIn.giftCodesOnly;
+        this.terms = paymentFormIn.terms;
+        this.paymentType = paymentFormIn.paymentType;
     }
 
-    /**
-     * @param cspTandC the cspTandC to set
-     */
-    public void setCspTandC(boolean cspTandC) {
-        this.cspTandC = cspTandC;
+    public String getGiftCodes() {
+        return giftCodes;
     }
 
+    public void setGiftCodes(String giftCodes) {
+        this.giftCodes = giftCodes;
+    }
 
+    public String getTxnType() {
+        return txnType;
+    }
 
-    /**
-     * To String Implementation.
-     */
+    public void setTxnType(String txnType) {
+        this.txnType = txnType;
+    }
+
+    public int getNumberOfClouds() {
+        return numberOfClouds;
+    }
+
+    public void setNumberOfClouds(int numberOfClouds) {
+        this.numberOfClouds = numberOfClouds;
+    }
+
+    public boolean isGiftCodesOnly() {
+        return giftCodesOnly;
+    }
+
+    public void setGiftCodesOnly(boolean giftCodesOnly) {
+        this.giftCodesOnly = giftCodesOnly;
+    }
+
+    public boolean isTermsChecked() {
+        return "on".equalsIgnoreCase(terms);
+    }
+
+    public String getTerms() {
+        return terms;
+    }
+
+    public void setTerms(String terms) {
+        this.terms = terms;
+    }
+
+    public PaymentType getPaymentType() {
+        return paymentType;
+    }
+
+    public void setPaymentType(PaymentType paymentType) {
+        this.paymentType = paymentType;
+    }
+
+    public boolean isByGiftCode() {
+        return (paymentType == PaymentType.GiftCode);
+    }
+
+    public boolean isByCreditCard() {
+        return (paymentType == PaymentType.CreditCard);
+    }
+
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("[giftCodes=").append(giftCodes)
-            .append(", cspTandC=").append(cspTandC)
-            .append("]");
-        return builder.toString();
+        return Objects.toStringHelper(this)
+                .add("giftCodes", giftCodes)
+                .add("txnType", txnType)
+                .add("numberOfClouds", numberOfClouds)
+                .add("giftCodesOnly", giftCodesOnly)
+                .add("terms", terms)
+                .add("paymentType", paymentType)
+                .toString();
     }
-    
-    /**
-     * HashCode Implementation using apache-lang
-     */
+
     @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-        .append(giftCodes)
-        .append(cspTandC)
-        .toHashCode();
-    }
-    
-    /**
-     * Equals Implementation using apache-lang
-     */
-    @Override
-    public boolean equals(Object obj) {
-        if(obj instanceof PaymentForm){
-            final PaymentForm other = (PaymentForm) obj;
-            return new EqualsBuilder()
-                .append(giftCodes, other.giftCodes)
-                .append(cspTandC, other.cspTandC)
-                .isEquals();
-        } else{
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
+
+        PaymentForm that = (PaymentForm) o;
+
+        return Objects.equal(this.giftCodes, that.giftCodes) &&
+                Objects.equal(this.txnType, that.txnType) &&
+                Objects.equal(this.numberOfClouds, that.numberOfClouds) &&
+                Objects.equal(this.giftCodesOnly, that.giftCodesOnly) &&
+                Objects.equal(this.terms, that.terms) &&
+                Objects.equal(this.paymentType, that.paymentType);
     }
 
-   public String getGiftCodes()
-   {
-      return giftCodes;
-   }
-
-   public void setGiftCodes(String giftCodes)
-   {
-      this.giftCodes = giftCodes;
-   }
-
-   public String getCustomerEmail()
-   {
-      return customerEmail;
-   }
-
-   public void setCustomerEmail(String customerEmail)
-   {
-      this.customerEmail = customerEmail;
-   }
-
-   public String getCustomerName()
-   {
-      return customerName;
-   }
-
-   public void setCustomerName(String customerName)
-   {
-      this.customerName = customerName;
-   }
-
-   public String getTxnType()
-   {
-      return txnType;
-   }
-
-   public void setTxnType(String txnType)
-   {
-      this.txnType = txnType;
-   }
-
-   public int getNumberOfClouds()
-   {
-      return numberOfClouds;
-   }
-
-   public void setNumberOfClouds(int numberOfClouds)
-   {
-      this.numberOfClouds = numberOfClouds;
-   }
-
-   public boolean isGiftCodesOnly()
-   {
-      return giftCodesOnly;
-   }
-
-   public void setGiftCodesOnly(boolean giftCodesOnly)
-   {
-      this.giftCodesOnly = giftCodesOnly;
-   }
-
-    public String getTotalAmountText() {
-        return totalAmountText;
-    }
-
-    public void setTotalAmountText(String totalAmountText) {
-        this.totalAmountText = totalAmountText;
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(giftCodes, txnType, numberOfClouds, giftCodesOnly, terms, paymentType);
     }
 }

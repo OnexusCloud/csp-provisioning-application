@@ -9,12 +9,13 @@ import com.google.common.collect.Multimap;
 import org.json.simple.JSONValue;
 import org.springframework.context.MessageSource;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.util.HtmlUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.Locale;
 
-public class FormErrorsHelper {
+public class ResponseBuilder {
 
     private final MessageSource messageSource;
     private final HttpServletRequest request;
@@ -22,22 +23,39 @@ public class FormErrorsHelper {
     private Locale locale;
     private Multimap<String, String> errors;
 
-    public FormErrorsHelper(MessageSource messageSource, HttpServletRequest request) {
+    private ModelAndView mv = new ModelAndView();
+    private String cloudName;
+
+    public ResponseBuilder(MessageSource messageSource, HttpServletRequest request) {
         this.messageSource = messageSource;
         this.request = request;
+    }
+
+    public ModelAndView build() {
+        return withModelView(mv);
+    }
+
+    public boolean hasErrors() {
+        return (errors != null && !errors.isEmpty());
     }
 
     public boolean isEmpty() {
         return (errors == null || errors.isEmpty());
     }
 
-    public void add(String formElementName, String msgKey, Object... msgParams) {
+    public ResponseBuilder addGeneralError(String msgKey, Object... msgParams) {
+        addError("error", msgKey, msgParams);
+        return this;
+    }
+
+    public ResponseBuilder addError(String formElementName, String msgKey, Object... msgParams) {
         String msg = msg(msgKey, msgParams);
 
         if (errors == null) {
             errors = ArrayListMultimap.create();
         }
         errors.put(formElementName, msg);
+        return this;
     }
 
     public ModelAndView withModelView(ModelAndView mv) {
@@ -67,7 +85,7 @@ public class FormErrorsHelper {
             Collection<String> msgs = errors.get(elementName);
             Iterable<String> msgsEsc = Iterables.transform(msgs, new Function<String, String>() {
                 public String apply(String input) {
-                    return (input == null) ? null : JSONValue.escape(input);
+                    return (input == null) ? null : JSONValue.escape(HtmlUtils.htmlEscape(input));
                 }
             });
             String errorMsg = Joiner.on("<br/>").join(msgsEsc);
@@ -93,5 +111,21 @@ public class FormErrorsHelper {
                 .add("locale", locale)
                 .add("errors", errors)
                 .toString();
+    }
+
+    public ResponseBuilder setView(String view) {
+        mv.setViewName(view);
+        return this;
+    }
+
+    public ResponseBuilder setCloudName(String cloudName) {
+        this.cloudName = cloudName;
+        addObject("cloudName", cloudName);
+        return this;
+    }
+
+    public ResponseBuilder addObject(String name, Object value) {
+        mv.addObject(name, value);
+        return this;
     }
 }

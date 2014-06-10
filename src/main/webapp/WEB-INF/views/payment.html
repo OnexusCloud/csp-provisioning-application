@@ -10,7 +10,7 @@
 <div layout:fragment="nav"></div>
 
 <div class="container" layout:fragment="bodyContent">
-    <div class="row-fluid" th:object="${paymentInfo}">
+    <div class="row-fluid">
         <div class="col-sm-1"></div>
 
         <div class="col-sm-5">
@@ -20,7 +20,7 @@
 
             <!--/* Don't show payment form if buying gift card and no credit card processor enabled */-->
             <form action="#" th:action="@{/makePayment}" method="post"
-                  class="form-secondary" id="paymentForm"
+                  class="form-secondary" id="paymentForm" th:object="${paymentInfo}"
                   th:unless="*{txnType == 'buyGiftCard' and giftCodesOnly}">
 
                 <!--/* Errors */-->
@@ -34,8 +34,7 @@
                 <div class="form-group" data-show-valid-glyph="false">
                     <div class="input-group">
                         <span class="input-group-addon">
-                            <input type="radio" name="paymentType" id="giftCodeRadio"
-                                   value="giftCard" th:checked="*{giftCodesOnly}"/>
+                            <input type="radio" name="paymentType" id="giftCodeRadio" value="giftCode" th:checked="*{giftCodesOnly} or *{isByGiftCode()}"/>
                         </span>
                         <input type="text" id="giftCodes" name="giftCodes" placeholder="gift codes" th:placeholder="#{selectPayment.giftCodes.placeHolder}"
                                class="form-control" th:value="*{giftCodes}"/>
@@ -47,10 +46,10 @@
                 <div class="form-group" th:unless="*{giftCodesOnly}">
                     <div class="input-group">
                         <span class="input-group-addon">
-                            <input type="radio" name="paymentType" id="creditCardRadio" value="creditCard"/>
+                            <input type="radio" name="paymentType" id="creditCardRadio" value="creditCard" th:checked="*{isByCreditCard()}"/>
                         </span>
                         <label for="creditCardRadio">
-                            <img src="img/credit-card-front.png"/><th:block th:utext="#{selectPayment.giftCodes.placeHolder}">Credit card</th:block>
+                            <img src="img/credit-card-front.png"/><th:block th:utext="#{selectPayment.creditCard.placeHolder}">Credit card</th:block>
                         </label>
                     </div>
                 </div>
@@ -59,7 +58,7 @@
                 <div class="form-group">
                     <label class="input-group">
                         <span class="input-group-addon">
-                            <input type="checkbox" name="cspTandC" id="cspTandC" th:checked="*{cspTandC}"/>
+                            <input type="checkbox" name="terms" id="terms" th:checked="*{terms}"/>
                         </span>
                         <label class="secondary" th:utext="#{form.terms(${cspTermsUrl})}">
                             I agree to the
@@ -94,7 +93,7 @@
                 <h1 th:utext="#{orderSummary.title}">Order summary</h1>
             </div>
 
-            <div class="equation" th:utext="#{orderSummary.body(${paymentInfo.totalAmountText})}">
+            <div class="equation" th:utext="#{orderSummary.body(${totalAmountText})}">
                 <div class="addend">
                     Respect Network<br/>
                     LIFETIME membership
@@ -112,13 +111,14 @@
 </div>
 
 <th:block layout:fragment="postFooterContent">
-    <script>
+    <script th:inline="javascript">
         /*<![CDATA[*/
         $(document).ready(function () {
 
             var msg = {
-                paymentMethodRequired: /*[[#{selectPayment.msg.method.required}]]*/ 'Please select a payment method',
+                paymentTypeRequired: /*[[#{selectPayment.msg.type.required}]]*/ 'Please select a payment method',
                 giftCodesRequired: /*[[#{selectPayment.msg.giftCodes.required}]]*/ 'Please enter one or more gift codes',
+                giftCodesAccident: /*[[#{selectPayment.msg.giftCodes.accident}]]*/ 'Payment with gift codes is not checked. However, a gift code has been provided.<br />Please verify that the gift code is appropriate and a proper payment type is selected',
                 cspTermsRequired: /*[[#{form.msg.terms.required}]]*/ 'Please agree to the Respect Trust Framework to continue'
             };
 
@@ -146,25 +146,19 @@
                             }
                         }
                     },
-                    cspTandC: {
+                    terms: {
                         required: true
                     }
                 },
                 messages: {
                     paymentType: {
-                        required: msg.paymentMethodRequired
+                        required: msg.paymentTypeRequired
                     },
                     giftCodes: {
                         required: msg.giftCodesRequired
                     },
-                    cspTandC: {
+                    terms: {
                         required: msg.cspTermsRequired
-                    }
-                },
-                ext: {
-                    paymentType: {
-                        errorContainer: $('#paymentTypeError'),
-                        showValidGlyph: false
                     }
                 }
             }, /*[[${errors}]]*/ null

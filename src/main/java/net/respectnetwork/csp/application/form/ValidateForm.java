@@ -51,6 +51,10 @@ public class ValidateForm {
         return "on".equalsIgnoreCase(terms);
     }
 
+    public String getTerms() {
+        return terms;
+    }
+
     public void setTerms(String terms) {
         this.terms = terms;
     }

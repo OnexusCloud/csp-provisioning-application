@@ -15,7 +15,7 @@ import net.respectnetwork.csp.application.model.CSPCostOverrideModel;
 import net.respectnetwork.csp.application.model.CSPModel;
 import net.respectnetwork.csp.application.model.InviteModel;
 import net.respectnetwork.csp.application.session.RegistrationSession;
-import net.respectnetwork.csp.application.util.FormErrorsHelper;
+import net.respectnetwork.csp.application.util.ResponseBuilder;
 import net.respectnetwork.sdk.csp.validation.CSPValidationException;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.slf4j.Logger;
@@ -48,6 +48,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static net.respectnetwork.csp.application.constants.PaymentGateway.GIFT_CODE_ONLY;
 
 /**
  * Handles requests for the application home page.
@@ -174,7 +175,7 @@ public class RegistrationController
                                BindingResult result) {
         logger.debug("Starting the Sign Up Process");
 
-        FormErrorsHelper errors = new FormErrorsHelper(messageSource, request);
+        ResponseBuilder errors = new ResponseBuilder(messageSource, request);
 
         String cloudName = signUpForm.getCloudName();
         String inviteCode = signUpForm.getInviteCode();
@@ -185,7 +186,7 @@ public class RegistrationController
         if (isNullOrEmpty(inviteCode)) {
             if (theManager.isRequireInviteCode()) {
                 logger.debug("Invite code required but missing :: inviteCode={}", inviteCode);
-                errors.add("error", "signUp.msg.invite.codeMissing");
+                errors.addError("error", "signUp.msg.invite.codeMissing");
             }
         } else {
             try {
@@ -199,11 +200,11 @@ public class RegistrationController
                     logger.error("todo invitee code save not implemented!");
                 } else {
                     logger.warn("Invite code not associated with user :: inviteCode={}", inviteCode);
-                    errors.add("error", "signUp.msg.invite.invalid");
+                    errors.addError("error", "signUp.msg.invite.invalid");
                 }
             } catch (Exception e) {
                 logger.error("Error validating invite code", e);
-                errors.add("error", "signUp.msg.invite.validationError");
+                errors.addError("error", "signUp.msg.invite.validationError");
             }
         }
 
@@ -211,7 +212,7 @@ public class RegistrationController
         if (errors.isEmpty()) {
             if (isNullOrEmpty(cloudName)) {
                 logger.debug("No cloud name supplied :: cloudName={}", cloudName);
-                errors.add("error", "signUp.msg.invalid");
+                errors.addError("error", "signUp.msg.invalid");
             } else {
                 if (!cloudName.startsWith("=")) {
                     cloudName = "=" + cloudName;
@@ -219,16 +220,16 @@ public class RegistrationController
 
                 if (!RegistrationManager.validateCloudName(cloudName)) {
                     logger.debug("Cloud name invalid :: cloudName={}", cloudName);
-                    errors.add("error", "signUp.msg.invalid");
+                    errors.addError("error", "signUp.msg.invalid");
                 } else {
                     try {
                         if (!theManager.isCloudNameAvailable(cloudName)) {
                             logger.debug("Cloud name not available :: cloudName={}", cloudName);
-                            errors.add("error", "signUp.msg.unavailable");
+                            errors.addError("error", "signUp.msg.unavailable");
                         }
                     } catch (UserRegistrationException e) {
                         logger.error("Error checking if cloud name available");
-                        errors.add("error", "signUp.msg.nameCheckError");
+                        errors.addError("error", "signUp.msg.nameCheckError");
                     }
                 }
             }
@@ -289,14 +290,14 @@ public class RegistrationController
                                    BindingResult result) {
         logger.debug("Get User Details");
 
-        FormErrorsHelper errors = new FormErrorsHelper(messageSource, request);
+        ResponseBuilder errors = new ResponseBuilder(messageSource, request);
 
         // Validate session
         String sessionId = regSession.getSessionId();
         String cloudName = regSession.getCloudName();
         if (isNullOrEmpty(sessionId) || isNullOrEmpty(cloudName)) {
             logger.debug("Invalid sessionId or cloudName :: sessionId={}, cloudName={}", sessionId, cloudName);
-            errors.add("error", "form.invalidSession");
+            errors.addError("error", "form.invalidSession");
 
             ModelAndView mv = new ModelAndView("userdetails");
             mv.addObject("userInfo", userDetailsForm);
@@ -308,28 +309,28 @@ public class RegistrationController
         String email = userDetailsForm.getEmail();
         if (!EmailValidator.getInstance().isValid(email)) {
             logger.debug("Invalid email :: email={}", email);
-            errors.add("email", "userDetails.msg.email.invalid");
+            errors.addError("email", "userDetails.msg.email.invalid");
         }
 
         // Validate phone
         String phone = userDetailsForm.getPhone();
         if (!RegistrationManager.validatePhoneNumber(phone)) {
             logger.debug("Invalid phone :: phone={}", phone);
-            errors.add("mobilePhone", "userDetails.msg.phone.invalid");
+            errors.addError("mobilePhone", "userDetails.msg.phone.invalid");
         }
 
         // Validate password
         String password = userDetailsForm.getPassword();
         if (!RegistrationManager.validatePassword(password)) {
             logger.debug("Invalid password :: password={}" + password);
-            errors.add("password", "userDetails.msg.password.invalid");
+            errors.addError("password", "userDetails.msg.password.invalid");
         }
 
         // Validate confirm password
         String confirmPassword = userDetailsForm.getConfirmPassword();
         if (isNullOrEmpty(password) || !password.equals(confirmPassword)) {
             logger.debug("password != confirmPassword :: password={}, confirmPassword={}", password, confirmPassword);
-            errors.add("confirmPassword", "userDetails.msg.confirmPassword.equalTo");
+            errors.addError("confirmPassword", "userDetails.msg.confirmPassword.equalTo");
         }
 
         // Validate existing user
@@ -337,15 +338,15 @@ public class RegistrationController
             CloudNumber[] existingUsers = theManager.checkEmailAndMobilePhoneUniqueness(phone, email);
             if (existingUsers[0] != null) {
                 logger.debug("Phone not unique :: phone={}, existingUser={}", phone, existingUsers[0]);
-                errors.add("mobilePhone", "userDetails.msg.phone.used");
+                errors.addError("mobilePhone", "userDetails.msg.phone.used");
             }
             if (existingUsers[1] != null) {
                 logger.debug("Email not unique :: email={}, existingUser={}", email, existingUsers[1]);
-                errors.add("email", "userDetails.msg.email.used");
+                errors.addError("email", "userDetails.msg.email.used");
             }
         } catch (Exception e) {
             logger.error("Failed to check email and phone uniqueness!", e);
-            errors.add("error", "userDetails.msg.uniquenessError");
+            errors.addError("error", "userDetails.msg.uniquenessError");
         }
 
         // Send validation codes
@@ -354,7 +355,7 @@ public class RegistrationController
                 theManager.sendValidationCodes(sessionId, email, phone);
             } catch (Exception e) {
                 logger.warn("Failed to send validation codes", e);
-                errors.add("error", "userDetails.msg.sendCodesError");
+                errors.addError("error", "userDetails.msg.sendCodesError");
             }
         }
 
@@ -391,7 +392,7 @@ public class RegistrationController
         logger.debug("Starting Validation Process");
         logger.debug("Processing Validation Data: {}", validateForm.toString());
 
-        FormErrorsHelper errors = new FormErrorsHelper(messageSource, request);
+        ResponseBuilder errors = new ResponseBuilder(messageSource, request);
 
         ModelAndView mv = new ModelAndView("validate");
         mv.addObject("validateInfo", validateForm);
@@ -404,7 +405,7 @@ public class RegistrationController
         String cloudName = regSession.getCloudName();
         if (isNullOrEmpty(sessionId) || isNullOrEmpty(cloudName)) {
             logger.debug("Invalid sessionId or cloudName :: sessionId={}, cloudName={}", sessionId, cloudName);
-            errors.add("error", "form.invalidSession");
+            errors.addError("error", "form.invalidSession");
 
             return errors.withModelView(mv);
         }
@@ -415,7 +416,7 @@ public class RegistrationController
                 theManager.sendValidationCodes(sessionId, regSession.getVerifiedEmail(), regSession.getVerifiedMobilePhone());
             } catch (CSPValidationException e) {
                 logger.warn("Failed to send validation codes", e);
-                errors.add("error", "userDetails.msg.sendCodesError");
+                errors.addError("error", "userDetails.msg.sendCodesError");
             }
 
             return errors.withModelView(mv);
@@ -429,13 +430,13 @@ public class RegistrationController
         smsCode = (smsCode != null) ? smsCode.trim().toUpperCase(locale) : null;
         if (!theManager.validateCodes(sessionId, emailCode, smsCode)) {
             logger.debug("Code validation failed :: emailCode={}, smsCode={}", emailCode, smsCode);
-            errors.add("error", "validateCodes.msg.validationFailed");
+            errors.addError("error", "validateCodes.msg.validationFailed");
         }
 
         // Validate terms
         if(!validateForm.isTermsChecked()) {
             logger.debug("Respect Trust Framework not checked");
-            errors.add("terms", "form.msg.terms.required");
+            errors.addError("terms", "form.msg.terms.required");
         }
 
         // Response
@@ -448,11 +449,11 @@ public class RegistrationController
                 try {
                     cspModel = DAOFactory.getInstance().getCSPDAO().get(cspCloudName);
                     if (cspModel == null) {
-                        errors.add("error", "form.databaseError");
+                        errors.addError("error", "form.databaseError");
                     }
                 } catch (Exception e) {
                     logger.error("Failed to get cspModel :: cspCloudName={}", cspCloudName);
-                    errors.add("error", "form.databaseError");
+                    errors.addError("error", "form.databaseError");
                 }
 
                 if (errors.isEmpty() && cspModel != null) {
@@ -466,13 +467,12 @@ public class RegistrationController
                         logger.debug("Setting gift code from session :: giftCode={}", giftCode);
                         paymentForm.setGiftCodes(regSession.getGiftCode());
                     }
-                    if ("GIFT_CODE_ONLY".equals(cspModel.getPaymentGatewayName())) {
+                    if (GIFT_CODE_ONLY.is(cspModel)) {
                         paymentForm.setGiftCodesOnly(true);
                     }
 
                     // Cost override
                     CurrencyCost totalCost = getCostIncludingOverride(cspModel, regSession.getVerifiedMobilePhone(), paymentForm.getNumberOfClouds());
-                    paymentForm.setTotalAmountText(formatCurrencyAmount(totalCost));
 
                     // Update session
                     regSession.setCurrency(totalCost.getCurrencyCode());
@@ -481,6 +481,7 @@ public class RegistrationController
 
                     mv = new ModelAndView("payment");
                     mv.addObject("paymentInfo", paymentForm);
+                    mv.addObject("totalAmountText", formatCurrencyAmount(totalCost));
                 }
             }
         }
@@ -527,7 +528,7 @@ public class RegistrationController
     static String formatCurrencyAmount(String currency, BigDecimal amount) {
         // Hack - JDK doesn't seem to have an easy locale-independent way to get this symbol
         String currencySymbol = "";
-        if (currency.equals("USD") || currency.equals("AUD")) {
+        if ("USD".equals(currency) || "AUD".equals(currency)) {
             currencySymbol = "$";
         }
         return String.format("%s%04.2f %s", currencySymbol, amount, currency);
