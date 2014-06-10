@@ -29,7 +29,7 @@
 
         <!--/* Email code */-->
         <div class="form-group" data-show-valid-glyph="false">
-            <input type="text" id="emailCode" name="emailCode" class="form-control"
+            <input type="text" id="emailCode" name="emailCode" class="form-control" autocomplete="off"
                    placeholder="email code" th:placeholder="#{validateCodes.emailCode.placeholder}"
                    required="required" autofocus="autofocus"/>
 
@@ -40,7 +40,7 @@
 
         <!--/* Text code */-->
         <div class="form-group" data-show-valid-glyph="false">
-            <input type="text" id="smsCode" name="smsCode" class="form-control"
+            <input type="text" id="smsCode" name="smsCode" class="form-control" autocomplete="off"
                    placeholder="text code"  th:placeholder="#{validateCodes.smsCode.placeholder}"
                    required="required"/>
 
@@ -52,7 +52,7 @@
         <!--/* I agree checkbox */-->
         <div class="form-group">
             <label class="secondary">
-                <input type="checkbox" id="terms" name="terms"/>
+                <input type="checkbox" id="terms" name="terms" th:checked="*{terms}"/>
                 <th:block th:utext="#{form.terms(${cspTermsUrl})}">
                 I agree to the
                 <a target="_blank" onclick="return windowpop(this.href, 545, 433);"
