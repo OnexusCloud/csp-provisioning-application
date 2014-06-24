@@ -481,7 +481,7 @@ public class PersonalCloudController
                   forwardingPage = getRNpostRegistrationLandingPage() ; //RegistrationManager.getCspInviteURL();
                   queryStr = this.formatQueryStr(cloudName, regSession.getRnQueryString(), request);
                   statusText = "Thank you " + cloudName + " for your personal cloud order."
-                          + "We will shortly notify once we complete registering your cloud with the network.";
+                          + "We are processing your order and will notify you once it completes registration in the network.";
                } else
                {
                   forwardingPage += "/signup";
@@ -498,7 +498,7 @@ public class PersonalCloudController
                   forwardingPage = getRNpostRegistrationLandingPage() ; //RegistrationManager.getCspInviteURL();
                   queryStr = this.formatQueryStr(cloudName, regSession.getRnQueryString(), request);
                   statusText = "Thank you " + cloudName + " for your dependent cloud order."
-                          + "We will shortly notify once we complete registering your cloud with the network.";
+                          + "We are processing your order and will notify you once it completes registration in the network.";
                } else
                {
                   forwardingPage += "/cloudPage";
@@ -831,7 +831,7 @@ public class PersonalCloudController
                 forwardingPage = getRNpostRegistrationLandingPage();
                 queryStr = formatQueryStr(cloudName, regSession.getRnQueryString(), req);
                 statusText = "Thank you " + cloudName + " for your personal cloud order."
-                        + "We will shortly notify once we complete registering your cloud with the network.";
+                        + "We are processing your order and will notify you once it completes registration in the network.";
 
                 // make a new record in the giftcode_redemption table
                 GiftCodeRedemptionModel giftCodeRedemption = new GiftCodeRedemptionModel();
@@ -859,7 +859,7 @@ public class PersonalCloudController
                 forwardingPage = getRNpostRegistrationLandingPage();
                 queryStr = formatQueryStr(cloudName, regSession.getRnQueryString(), req);
                 statusText = "Thank you " + cloudName + " for your dependent cloud order."
-                        + "We will shortly notify once we complete registering your cloud with the network.";
+                        + "We are processing your order and will notify you once it completes registration in the network.";
             } else {
                 paymentForm.setNumberOfClouds(paymentForm.getNumberOfClouds() - giftCodes.size());
                 return processCreditType(form, paymentForm, req, cspModel); // additional credit needed
@@ -907,7 +907,7 @@ public class PersonalCloudController
                 forwardingPage = getRNpostRegistrationLandingPage();
                 queryStr = formatQueryStr(cloudName, regSession.getRnQueryString(), req);
                 statusText = "Thank you " + cloudName + " for your personal cloud order."
-                        + "We will shortly notify once we complete registering your cloud with the network.";
+                        + "We are processing your order and will notify you once it completes registration in the network.";
 
                 // make an entry in promo_cloud table
                 PromoCloudModel promoCloud = new PromoCloudModel();
@@ -932,7 +932,7 @@ public class PersonalCloudController
                 forwardingPage = getRNpostRegistrationLandingPage();
                 queryStr = formatQueryStr(cloudName, regSession.getRnQueryString(), req);
                 statusText = "Thank you " + cloudName + " for your dependent cloud order."
-                        + "We will shortly notify once we complete registering your cloud with the network.";
+                        + "We are processing your order and will notify you once it completes registration in the network.";
             } else {
                 return form.addGeneralError("error.register.cloudName.dependent", registrationManager.getCSPContactInfo()).build();
             }
