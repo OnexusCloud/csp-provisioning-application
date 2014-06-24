@@ -34,14 +34,24 @@
                         </div>
 
                         <div th:utext="${StripeJavaScript}">
-                            <script src="https://checkout.stripe.com/checkout.js"
-                                    class="stripe-button"
-                                    data-key=""
-                                    data-amount="2500"
-                                    data-name="One Personal Cloud"
-                                    data-description="$25 USD"
-                                    data-image="img/cloud.png">
+                            <script th:inline="javascript">
+                                /*<![CDATA[*/
+                                var token = function(res){
+                                    var $input = $('<input type=hidden name=stripeToken />').val(res.id);
+                                    $('form').append($input).submit();
+                                };
+
+                                StripeCheckout.open({
+                                    name:        'One Personal Cloud',
+                                    key:         'pk_test_6pRNASCoBOKtIshFeQd4XMUh',
+                                    amount:      2500,
+                                    description: '$25 USD',
+                                    image:       "img/cloud.png",
+                                    token:       token
+                                });
+                                /*]]>*/
                             </script>
+
                         </div>
 
                     </th:block>
