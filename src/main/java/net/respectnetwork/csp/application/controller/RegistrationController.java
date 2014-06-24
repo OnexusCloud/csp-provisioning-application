@@ -335,7 +335,7 @@ public class RegistrationController
 
         // Validate existing user
         try {
-            CloudNumber[] existingUsers = theManager.checkEmailAndMobilePhoneUniqueness(phone, email);
+            CloudNumber[] existingUsers = theManager.checkEmailAndMobilePhoneUniqueness(email, phone);
             if (existingUsers[0] != null) {
                 logger.debug("Phone not unique :: phone={}, existingUser={}", phone, existingUsers[0]);
                 errors.addError("mobilePhone", "userDetails.msg.phone.used");
